@@ -58,8 +58,7 @@ namespace TIProject.Data
         public string? Email { get; set; }
 
         [Required(ErrorMessage = "El campo 'Contraseña' es obligatorio.")]
-        [StringLength(20, MinimumLength = 8, ErrorMessage = "La contraseña debe contener entre 8 y 20 caractéres.")]
-        [RegularExpression(@"^\S+$", ErrorMessage = "La contraseña no debe contener espacios.")]
+        [MaxLength(512)] // Espacio para hash PBKDF2 (~84 chars) + margen. Validación de longitud de texto plano se hace en la capa de aplicación.
         public string? Password { get; set; }
 
         [Required(ErrorMessage = "El campo 'Teléfono' es obligatorio.")]

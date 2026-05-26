@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TIProject.Data;
 
@@ -11,9 +12,11 @@ using TIProject.Data;
 namespace TIProject.Migrations
 {
     [DbContext(typeof(TIProjectDbContext))]
-    partial class TIProjectDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260526065040_ExpandPasswordColumn")]
+    partial class ExpandPasswordColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
