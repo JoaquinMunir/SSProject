@@ -59,7 +59,7 @@
 
     void Select(Role role)
     {
-        Navigation.NavigateTo($"/login?role={(int)role}");
+        Navigation.NavigateTo($"/login?role={(int)role}", forceLoad: true);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -1,6 +1,8 @@
 @page "/login"
 @using Microsoft.AspNetCore.WebUtilities
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
 
 <HeadContent>
     <link href="css/login.css" rel="stylesheet" />
@@ -80,6 +82,14 @@
                     <label class="form-check-label" for="chkRecordar">Mantener sesión iniciada</label>
                 </div>
 
+                <div class="mb-3">
+                    <div class="g-recaptcha" data-sitekey="@Configuration["Recaptcha:SiteKey"]" style="min-height: 78px;"></div>
+                    @if (string.IsNullOrEmpty(Configuration["Recaptcha:SiteKey"]))
+                    {
+                        <p class="text-danger small">Error: No se encontró la SiteKey del reCAPTCHA.</p>
+                    }
+                </div>
+
                 <button type="submit" class="btn btn-login">
                     <i class="fas fa-sign-in-alt me-2"></i> Ingresar al Sistema
                 </button>
@@ -115,10 +125,13 @@
             hasRole = true;
         }
 
-        if (query.TryGetValue("error", out var error) && error == "1")
+        if (query.TryGetValue("error", out var error))
         {
             showError = true;
-            msgError = "Credenciales inválidas. Verifica tu número de identificación y contraseña.";
+            if (error == "1")
+                msgError = "Credenciales inválidas. Verifica tu número de identificación y contraseña.";
+            else if (error == "captcha")
+                msgError = "Por favor, completa el reCAPTCHA correctamente.";
         }
 
         try { _ = Navigation.ToAbsoluteUri(Navigation.Uri); } catch { }

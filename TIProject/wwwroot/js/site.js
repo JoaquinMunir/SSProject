@@ -29,6 +29,23 @@ window.toggleDarkMode = function () {
     return isDark;
 };
 
+window.renderRecaptcha = function (containerId, sitekey) {
+    if (typeof grecaptcha !== 'undefined' && grecaptcha.render) {
+        try {
+            grecaptcha.render(containerId, {
+                'sitekey': sitekey
+            });
+        } catch (e) {
+            console.warn("reCAPTCHA already rendered or failed:", e);
+        }
+    } else {
+        // Si no ha cargado, reintentar en 500ms
+        setTimeout(function () {
+            window.renderRecaptcha(containerId, sitekey);
+        }, 500);
+    }
+};
+
 window.initDarkMode = function () {
     var saved = null;
     try {

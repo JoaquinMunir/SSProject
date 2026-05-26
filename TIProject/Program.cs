@@ -18,6 +18,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<IRepoUsers, RepoUsers>();
 builder.Services.AddScoped<IRepoCourses, RepoCourses>();
 builder.Services.AddSingleton<TIProject.Data.Documents>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<TIProjectDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -83,13 +84,38 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 // Endpoint de login (POST) — con rate limiting y sin antiforgery (compensado por rate limiting + lockout)
-app.MapPost("/account/login", async (HttpContext context, IRepoUsers repoUsers) =>
+app.MapPost("/account/login", async (HttpContext context, IRepoUsers repoUsers, IConfiguration config, HttpClient httpClient) =>
 {
     var form = await context.Request.ReadFormAsync();
     var idNumberStr = form["idNumber"].ToString();
     var password = form["password"].ToString();
     var roleStr = form["role"].ToString();
     var remember = form["remember"].ToString() == "true";
+    var recaptchaResponse = form["g-recaptcha-response"].ToString();
+
+    // 1. Verificar reCAPTCHA
+    var secretKey = config["Recaptcha:SecretKey"];
+    if (string.IsNullOrEmpty(recaptchaResponse))
+    {
+        context.Response.Redirect($"/login?role={roleStr}&error=captcha");
+        return;
+    }
+
+    var verifyUrl = $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={recaptchaResponse}";
+    var verifyResult = await httpClient.PostAsync(verifyUrl, null);
+    if (!verifyResult.IsSuccessStatusCode)
+    {
+        context.Response.Redirect($"/login?role={roleStr}&error=captcha");
+        return;
+    }
+
+    var jsonString = await verifyResult.Content.ReadAsStringAsync();
+    using var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonString);
+    if (!jsonDoc.RootElement.GetProperty("success").GetBoolean())
+    {
+        context.Response.Redirect($"/login?role={roleStr}&error=captcha");
+        return;
+    }
 
     if (!int.TryParse(idNumberStr, out int idNumber) || string.IsNullOrWhiteSpace(password))
     {
