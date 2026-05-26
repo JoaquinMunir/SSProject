@@ -1,0 +1,100 @@
+@page "/dashboard_admin/documents"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "admin")]
+@using TIProject.Data
+@inject NavigationManager Navigation
+@inject TIProject.Data.Documents DocService
+@inject IJSRuntime JS
+
+<div style="padding: 20px;">
+    <h1>Gestión de Documentos</h1>
+
+    <div class="card mb-4 p-3 shadow-sm">
+        <h4>Subir Nuevo Documento</h4>
+        <p class="text-muted small">Tipos permitidos: PDF, Word, Excel, PowerPoint, imágenes (PNG, JPG). Máximo 20MB.</p>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label>Título</label>
+                <input type="text" @bind="nuevoTitulo" class="form-control" placeholder="Nombre del documento..." />
+            </div>
+            <div class="col-md-3">
+                <label>Categoría</label>
+                <select @bind="nuevaCategoria" class="form-select">
+                    <option>General</option>
+                    <option>Boletines</option>
+                    <option>Guías</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label>Archivo</label>
+                <InputFile OnChange="SubirArchivoReal" class="form-control" />
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(uploadError))
+        {
+            <div class="alert alert-danger mt-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>@uploadError
+            </div>
+        }
+
+        @if (isUploading)
+        {
+            <p class="text-primary mt-2">Subiendo... Espere.</p>
+        }
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr><th>Nombre</th><th>Categoría</th><th>Fecha</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var doc in DocService.GetAll())
+            {
+                <tr>
+                    <td>@doc.Title <small class="text-muted">(@doc.Type)</small></td>
+                    <td>@doc.Category</td>
+                    <td>@doc.UploadDate.ToShortDateString()</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(doc)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private string nuevoTitulo = "";
+    private string nuevaCategoria = "General";
+    private bool isUploading = false;
+    private string uploadError = "";
+
+    private async Task SubirArchivoReal(InputFileChangeEventArgs e)
+    {
+        isUploading = true;
+        uploadError = "";
+        try
+        {
+            if (string.IsNullOrWhiteSpace(nuevoTitulo)) nuevoTitulo = e.File.Name;
+            await DocService.UploadFile(e.File, nuevoTitulo, nuevaCategoria);
+            nuevoTitulo = "";
+            await JS.InvokeVoidAsync("alert", "Subido correctamente");
+        }
+        catch (InvalidOperationException ex)
+        {
+            uploadError = ex.Message;
+        }
+        catch (Exception)
+        {
+            uploadError = "Error al subir el archivo. Verifica el tipo y tamaño.";
+        }
+        isUploading = false;
+    }
+
+    private async Task Eliminar(Documento doc)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"¿Borrar '{doc.Title}'?"))
+            DocService.Delete(doc);
+    }
+}

@@ -1,0 +1,161 @@
+﻿@page "/courseRegistration/{Id:int}"
+@attribute [Authorize]
+@inject NavigationManager navigation
+@inject IRepoCourses repoCourses
+@inject IRepoUsers repoUsers
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+@using TIProject.Data
+
+<HeadContent>
+    <link href="css/register.css" rel="stylesheet" />
+</HeadContent>
+
+<PageTitle>Inscripción - Protección Civil</PageTitle>
+
+<div class="register-bg">
+    <div class="register-container">
+        <div class="register-forms">
+
+            <div class="login-header" style="position:relative;">
+                <h3>Inscripción al Curso</h3>
+                <p class="subtitle">Confirma los detalles e ingresa tus datos</p>
+                <button class="icon-btn" type="button" style="position:absolute;right:0;top:0;" onclick="history.back()" aria-label="Volver">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </div>
+
+            @if (course == null)
+            {
+                <div class="alert alert-info">Cargando información del curso...</div>
+            }
+            else
+            {
+                <div class="card mb-4" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <div class="card-body">
+                        <h4 class="card-title text-success">@course.Name</h4>
+
+                        <p class="card-text text-muted">Detalles del curso de capacitación.</p>
+
+                        <hr />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-calendar-alt me-2"></i> Fecha:</strong> @course.Date.ToString("dd 'de' MMMM yyyy")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-map-marker-alt me-2"></i> Lugar:</strong> @course.Place</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (registrationSuccess)
+                {
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <h4>¡Inscripción Exitosa!</h4>
+                        <p>Te has registrado correctamente al curso <strong>@course.Name</strong>.</p>
+                        <button class="btn btn-primary mt-3" @onclick="GoHome">Volver al Inicio</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-4">
+                        <label class="form-label fw-bold">Ingresa tu Número de Identificación / Matrícula</label>
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                            <input type="text" class="form-control"
+                                   placeholder="Ej. 20185678"
+                                   @bind="userIdNumber" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i> @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button class="btn-login" @onclick="RegisterUser">
+                                <i class="fas fa-user-check me-2"></i> Confirmar Inscripción
+                            </button>
+                            <button class="btn-cancel" @onclick="GoHome">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Course? course;
+    private string userIdNumber = "";
+    private string errorMessage = "";
+    private bool registrationSuccess = false;
+
+    private List<User> allUsers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            course = await repoCourses.Get(Id);
+            allUsers = await repoUsers.GetAll();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar el curso. Intenta nuevamente.";
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task RegisterUser()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(userIdNumber))
+        {
+            errorMessage = "Por favor, ingresa tu número de identificación.";
+            return;
+        }
+
+        // Busca el usuario por su IDNumber (Asegúrate de que tu modelo User tenga IdNumber)
+        var user = allUsers.FirstOrDefault(u => u.IdNumber.ToString() == userIdNumber);
+
+        if (user == null)
+        {
+            errorMessage = "No se encontró un usuario con esa matrícula/ID. Verifica tus datos.";
+            return;
+        }
+
+        try
+        {
+            // Lógica de inscripción (Simulada, conecta tu repositorio aquí)
+            Console.WriteLine($"Inscribiendo al usuario {user.Name} (ID: {user.Id}) al curso {course.Id}");
+
+            // await repoCourses.RegisterStudentToCourse(course.Id, user.Id);
+
+            await Task.Delay(500);
+            registrationSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Hubo un error al procesar tu inscripción.";
+            Console.WriteLine($"Error inscripción: {ex.Message}");
+        }
+    }
+
+    private void GoHome()
+    {
+        navigation.NavigateTo("/");
+    }
+}

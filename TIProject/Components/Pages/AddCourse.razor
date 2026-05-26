@@ -1,0 +1,190 @@
+@page "/addCourse"
+@page "/editCourse/{Id:int}"
+@attribute [Authorize(Roles = "admin")]
+@inject NavigationManager navigation
+@inject IRepoCourses repoCourses
+@inject IRepoUsers repoUsers
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>@_tittle Curso</PageTitle>
+
+<HeadContent>
+    <link href="css/register.css" rel="stylesheet" />
+</HeadContent>
+
+<div class="register-bg">
+    <div class="register-container">
+        <div class="register-forms">
+
+            <div class="login-header" style="position:relative;">
+                <h3>@_tittle Curso</h3>
+                <p class="subtitle">Ingresa los datos del curso</p>
+                <button class="icon-btn" type="button" style="position:absolute;right:0;top:0;" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+            </div>
+
+            <EditForm Model="_course" FormName="frmCourse" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
+                        <InputText @bind-Value="_course.Name" class="form-control" placeholder="Nombre del curso" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _course.Name)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Fecha</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                        <InputDate @bind-Value="_course.Date" class="form-control" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _course.Date)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Lugar</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                        <InputText @bind-Value="_course.Place" class="form-control" placeholder="Lugar del curso" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _course.Place)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Encargado</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user-tie"></i></span>
+                        <input type="text" class="form-control"
+                               placeholder="Buscar encargado (Admin o Brigader)"
+                               value="@managerSearch"
+                               @oninput="OnManagerSearchChanged" />
+                    </div>
+                    @if (managerSuggestions.Any())
+                    {
+                        <ul class="list-group mt-1">
+                            @foreach (var user in managerSuggestions)
+                            {
+                                <li class="list-group-item list-group-item-action" @onclick="() => SelectManager(user)">
+                                    @user.Name (@user.Role)
+                                </li>
+                            }
+                        </ul>
+                    }
+                    <label><ValidationMessage For="@(() => _course.IdManager)" /></label>
+                </div>
+
+                <div class="row">
+                    <div class="row g-2">
+                        <div class="col">
+                            <button type="submit" class="btn btn-login">
+                                <i class="fas fa-save me-2"></i>@(_tittle.Contains("Modificar") ? "Actualizar" : "Guardar")
+                            </button>
+                        </div>
+                        <div class="col">
+                            <button type="button" class="btn btn-cancel" @onclick="Cancel">
+                                <i class="fas fa-xmark me-2"></i>Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Course _course = new Course { Date = DateTime.Today };
+    private string _tittle = "Nueva ";
+    private string managerSearch = "";
+    private List<User> allUsers = new();
+    private List<User> managerSuggestions = new();
+    private User? selectedManager;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { try { await JS.InvokeVoidAsync("initDarkMode"); } catch { } }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        allUsers = await repoUsers.GetAll();
+
+        if (Id > 0)
+        {
+            _tittle = "Modificar ";
+            var existingCourse = await repoCourses.Get(Id);
+            if (existingCourse != null)
+            {
+                _course = existingCourse;
+                var currentManager = allUsers.FirstOrDefault(u => u.Id == _course.IdManager);
+                if (currentManager != null)
+                {
+                    managerSearch = currentManager.Name ?? "";
+                    selectedManager = currentManager;
+                }
+            }
+            else
+            {
+                navigation.NavigateTo("/addCourse", forceLoad: true);
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        if (selectedManager != null) _course.IdManager = selectedManager.Id;
+
+        try
+        {
+            if (_course.Id > 0)
+                await repoCourses.Update(_course);
+            else
+            {
+                await repoCourses.Add(_course);
+                navigation.NavigateTo("/dashboard_admin/courses");
+                return;
+            }
+            await Cancel();
+        }
+        catch
+        {
+            await JS.InvokeVoidAsync("alert", "Error al guardar el curso. Verifica los datos.");
+        }
+    }
+
+    private async Task Cancel() => await JS.InvokeVoidAsync("history.back");
+
+    private void OnManagerSearchChanged(ChangeEventArgs e)
+    {
+        managerSearch = e.Value?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(managerSearch))
+        {
+            managerSuggestions.Clear();
+            selectedManager = null;
+            _course.IdManager = 0;
+        }
+        else
+        {
+            managerSuggestions = allUsers
+                .Where(u => (u.Role == Role.admin || u.Role == Role.brigader)
+                            && (u.Name ?? "").Contains(managerSearch, StringComparison.OrdinalIgnoreCase))
+                .Take(3)
+                .ToList();
+        }
+    }
+
+    private void SelectManager(User user)
+    {
+        selectedManager = user;
+        _course.IdManager = user.Id;
+        managerSearch = user.Name ?? "";
+        managerSuggestions.Clear();
+    }
+}

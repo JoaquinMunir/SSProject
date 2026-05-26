@@ -1,0 +1,98 @@
+@page "/dashboard_auxiliar"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "auxiliar")]
+@inject IRepoUsers RepoUsers
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <link href="css/dashboardIndex.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</HeadContent>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><i class="fas fa-hands-helping"></i></div>
+            <div class="logo-text"><h1>Auxiliar</h1></div>
+        </div>
+        <nav>
+            <button class="menu-item active"><i class="fas fa-clipboard-list"></i><span>Reporte Piso</span></button>
+            <button class="menu-item" onclick="location.href='/account/logout'">
+                <i class="fas fa-sign-out-alt"></i><span>Salir</span>
+            </button>
+        </nav>
+    </aside>
+
+    <div class="main-area">
+        <header class="header">
+            <div class="header-actions">
+                <div class="user-avatar" style="background-color: #27ae60;">
+                    @(_currentUser.Name?.FirstOrDefault().ToString().ToUpper() ?? "A")
+                </div>
+                <span>Aux. @_currentUser.Name</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="dashboard-content">
+                <h1>Vista Auxiliar</h1>
+                <p>Visualización de comunidad universitaria en: <strong>@_currentUser.School</strong></p>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card p-3 text-center">
+                            <h3>@usersInMySchool.Count()</h3>
+                            <small>Total Personas en Facultad</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-success text-white">Listado Informativo (Solo Lectura)</div>
+                    <ul class="list-group list-group-flush">
+                        @foreach (var user in usersInMySchool)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@user.Name</strong>
+                                    <br />
+                                    <small class="text-muted">@user.Role - @user.School</small>
+                                </div>
+                                <span class="badge bg-light text-dark border">@user.Blood</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private User _currentUser = new();
+    private List<User> usersInMySchool = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var authState = await AuthStateTask;
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userId, out int id))
+            {
+                var user = await RepoUsers.Get(id);
+                if (user is not null) _currentUser = user;
+            }
+        }
+
+        var allUsers = await RepoUsers.GetAll();
+        if (!string.IsNullOrEmpty(_currentUser.School))
+        {
+            usersInMySchool = allUsers
+                .Where(u => u.School == _currentUser.School)
+                .ToList();
+        }
+    }
+}

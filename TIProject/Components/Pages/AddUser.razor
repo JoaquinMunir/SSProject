@@ -1,0 +1,254 @@
+@page "/add"
+@page "/edit/{Id:int}"
+@attribute [Authorize(Roles = "admin")]
+@inject NavigationManager navigation
+@inject IRepoCourses repoCourses
+@inject IRepoUsers repoUsers
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+
+<PageTitle>@_tittle Usuarios</PageTitle>
+
+<HeadContent>
+    <link href="css/register.css" rel="stylesheet" />
+</HeadContent>
+
+<div class="register-bg">
+    <div class="register-container">
+        <div class="register-forms">
+
+            <div class="login-header" style="position:relative;">
+                <h3>@_tittle Usuario</h3>
+                <p class="subtitle">Ingresa los datos correspondientes</p>
+                <button class="icon-btn" type="button" style="position:absolute;right:0;top:0;" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+            </div>
+
+            @if (showError)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @msgError
+                </div>
+            }
+
+            <EditForm Model="_user" FormName="frmUsers" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <InputText @bind-Value="_user.Name" class="form-control" placeholder="Ingresa tu nombre" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.Name)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Número de identificación</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-address-card"></i></span>
+                        <InputNumber @bind-Value="_user.IdNumber" class="form-control" placeholder="Ingresa tu número de identificación" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.IdNumber)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <InputText @bind-Value="_user.Email" class="form-control" placeholder="Ingresa tu correo electrónico" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.Email)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        Contraseña @(Id > 0 ? "(dejar en blanco para no cambiar)" : "")
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <InputText type="password" @bind-Value="_plainPassword" class="form-control"
+                                   placeholder="@(Id > 0 ? "Nueva contraseña (opcional)" : "Ingresa tu contraseña")"
+                                   autocomplete="new-password" />
+                    </div>
+                    @if (Id == 0)
+                    {
+                        <label><ValidationMessage For="@(() => _user.Password)" /></label>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Número de Teléfono</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                        <InputText @bind-Value="_user.PhoneNumber" class="form-control" placeholder="Ingresa tu número de teléfono" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.PhoneNumber)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Domicilio</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-house"></i></span>
+                        <InputText @bind-Value="_user.Address" class="form-control" placeholder="Ingresa tu domicilio" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.Address)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Escuela</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-book"></i></span>
+                        <InputText @bind-Value="_user.School" class="form-control" placeholder="Ingresa tu escuela" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.School)" /></label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Sangre</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-droplet"></i></span>
+                        <InputText @bind-Value="_user.Blood" class="form-control" placeholder="Ingresa tu tipo de sangre" />
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.Blood)" /></label>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="form-label">Rol</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user-gear"></i></span>
+                        <InputSelect @bind-Value="_user.Role" class="form-select" required>
+                            <option value="">Selecciona tu rol</option>
+                            @foreach (Role role in Enum.GetValues(typeof(Role)))
+                            {
+                                <option value="@role">@role.GetDisplayName()</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <label><ValidationMessage For="@(() => _user.Role)" /></label>
+                </div>
+
+                @if (_user.Role == Role.auxiliar || _user.Role == Role.brigader)
+                {
+                    <div class="mb-3 row">
+                        <label class="form-label">Brigada</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card-clip"></i></span>
+                            <InputSelect @bind-Value="_user.Brigade" class="form-select" required>
+                                <option value="">Selecciona tu brigada</option>
+                                @foreach (Brigade brigade in Enum.GetValues(typeof(Brigade)))
+                                {
+                                    <option value="@brigade">@brigade.GetDisplayName()</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <label><ValidationMessage For="@(() => _user.Brigade)" /></label>
+                    </div>
+                }
+
+                <div class="row">
+                    <div class="row g-2">
+                        <div class="col">
+                            <button type="submit" class="btn btn-login">
+                                <i class="fas fa-save me-2"></i>Guardar
+                            </button>
+                        </div>
+                        <div class="col">
+                            <button type="button" class="btn btn-cancel" @onclick="Cancel">
+                                <i class="fas fa-xmark me-2"></i>Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private User _user = new();
+    private string _plainPassword = "";
+    private string _originalPasswordHash = "";
+    private string _tittle = "Nuevo ";
+
+    private bool showError = false;
+    private string msgError = "";
+
+    private readonly PasswordHasher<User> _hasher = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { try { await JS.InvokeVoidAsync("initDarkMode"); } catch { } }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id > 0)
+        {
+            var existing = await repoUsers.Get(Id);
+            if (existing is not null)
+            {
+                _user = existing;
+                _originalPasswordHash = existing.Password ?? "";
+                _user.Password = ""; // No mostrar el hash en el formulario
+                _tittle = "Modificar ";
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        showError = false;
+        msgError = string.Empty;
+
+        try
+        {
+            if (Id > 0)
+            {
+                // Edición: si se ingresó nueva contraseña, hashearla; si no, restaurar el hash original
+                if (!string.IsNullOrWhiteSpace(_plainPassword))
+                {
+                    if (_plainPassword.Length < 8 || _plainPassword.Length > 20)
+                    {
+                        showError = true;
+                        msgError = "La contraseña debe tener entre 8 y 20 caracteres.";
+                        return;
+                    }
+                    _user.Password = _hasher.HashPassword(_user, _plainPassword);
+                }
+                else
+                {
+                    _user.Password = _originalPasswordHash;
+                }
+                await repoUsers.Update(_user);
+            }
+            else
+            {
+                // Nuevo usuario: la contraseña es obligatoria
+                if (string.IsNullOrWhiteSpace(_plainPassword))
+                {
+                    showError = true;
+                    msgError = "La contraseña es obligatoria para nuevos usuarios.";
+                    return;
+                }
+                _user.Password = _hasher.HashPassword(_user, _plainPassword);
+                await repoUsers.Add(_user);
+            }
+            await Cancel();
+        }
+        catch (Exception ex)
+        {
+            showError = true;
+            msgError = ex.Message.Contains("registrado")
+                ? ex.Message
+                : "Faltan campos por llenar o la información ingresada no es válida.";
+        }
+    }
+
+    private async Task Cancel() => await JS.InvokeVoidAsync("history.back");
+}

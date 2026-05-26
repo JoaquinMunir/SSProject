@@ -1,0 +1,120 @@
+@page "/login"
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <link href="css/login.css" rel="stylesheet" />
+    <script src="js/login.js"></script>
+</HeadContent>
+
+<PageTitle>Inicio de Sesión</PageTitle>
+
+<div class="login-bg">
+    <div class="login-container">
+
+        <div class="login-left">
+            <div class="logo-circle">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2>Protección Civil</h2>
+            <p>Accede a tu panel de control</p>
+            <p style="font-size: 0.85rem; opacity: 0.8;">Gestión de usuarios</p>
+        </div>
+
+        <div class="login-right">
+            <div class="login-header" style="position:relative;">
+                <h3>Iniciar Sesión</h3>
+                <p class="subtitle">Ingresa tus credenciales de acceso</p>
+                <button class="icon-btn" type="button" style="position:absolute;right:0;top:0;" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+            </div>
+
+            @if (showError)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @msgError
+                </div>
+            }
+
+            @if (!hasRole)
+            {
+                <div class="alert alert-warning">
+                    <strong>Rol no seleccionado.</strong>
+                    <div>Debes seleccionar un rol antes de iniciar sesión.</div>
+                    <div class="mt-2"><a class="btn btn-outline-primary" href="/roleSelection">Seleccionar rol</a></div>
+                </div>
+            }
+
+            @* Formulario nativo POST al endpoint de autenticación del servidor *@
+            <form method="post" action="/account/login">
+                <input type="hidden" name="role" value="@selectedRole" />
+
+                <div class="mb-3">
+                    <label class="form-label">Número de identificación</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="number" name="idNumber" class="form-control"
+                               placeholder="Ingresa tu número de identificación" required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" class="form-control"
+                               placeholder="Ingresa tu contraseña" required autocomplete="current-password" />
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" name="remember" value="true" class="form-check-input" id="chkRecordar" />
+                    <label class="form-check-label" for="chkRecordar">Mantener sesión iniciada</label>
+                </div>
+
+                <button type="submit" class="btn btn-login" disabled="@(!hasRole)">
+                    <i class="fas fa-sign-in-alt me-2"></i> Ingresar al Sistema
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>Sistema Seguro</span>
+            </div>
+
+            <div style="text-align: center; color: #95a5a6; font-size: 0.8rem;">
+                <i class="fas fa-lock me-1"></i> Conexión cifrada SSL
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int selectedRole = -1;
+    private bool hasRole = false;
+    private bool showError = false;
+    private string msgError = "";
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("role", out var roleVal) &&
+            int.TryParse(roleVal, out int r) &&
+            Enum.IsDefined(typeof(Role), r))
+        {
+            selectedRole = r;
+            hasRole = true;
+        }
+
+        if (query.TryGetValue("error", out var error) && error == "1")
+        {
+            showError = true;
+            msgError = "Credenciales inválidas. Verifica tu número de identificación y contraseña.";
+        }
+
+        try { _ = Navigation.ToAbsoluteUri(Navigation.Uri); } catch { }
+    }
+}

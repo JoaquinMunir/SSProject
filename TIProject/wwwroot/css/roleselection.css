@@ -1,0 +1,113 @@
+/* SelectRole page styles */
+.selectrole-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f6f9;
+  padding: 40px;
+}
+
+.selectrole-card {
+  max-width: 900px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  display: flex;
+  overflow: hidden;
+}
+
+.selectrole-left {
+  flex: 1;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.selectrole-roles {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.selectrole-btn {
+  flex: 1;
+  min-width: 200px;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #cfe0ff;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: all .12s ease-in-out;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.selectrole-btn:hover {
+  transform: translateY(-4px);
+  background: #f8fbff;
+}
+
+.selectrole-btn .small-desc { font-size: 0.9rem; color: #666; font-weight: 400; }
+
+.selectrole-right {
+    width: 320px;
+    background: linear-gradient(135deg, #64B32E 0%, #527630 100%);
+    color: #fff;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.selectrole-icon { font-size: 42px; margin-bottom: 12px; }
+
+@media (max-width: 768px) {
+  .selectrole-card { flex-direction: column; }
+  .selectrole-right { width: 100%; padding: 24px; }
+}
+
+/* Dark mode overrides */
+body.dark-mode .selectrole-page {
+    background: #071019;
+
+}
+body.dark-mode .selectrole-card {
+    background: #0f1720; box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+
+}
+body.dark-mode .selectrole-left {
+    color: #e6eef8;
+
+}
+body.dark-mode .selectrole-btn {
+    background: #081018;
+    border-color: #27313a;
+    color: #cbd7df;
+    box-shadow: none;
+
+}
+body.dark-mode .selectrole-btn:hover {
+    background: #0b141a;
+
+}
+body.dark-mode .selectrole-right {
+    background: linear-gradient(135deg, #64B32E 0%, #527630 100%);
+}
+
+/* Toggle wrapper background circle */
+.dark-toggle-wrapper { position: relative; width: 46px; height: 46px; }
+.dark-toggle-wrapper .dm-bg-circle { position: absolute; width: 46px; height: 46px; border-radius: 50%; background: #fff; left: 0; top: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.12); }
+.dark-toggle-wrapper .dm-toggle { position: absolute; left: 6px; top: 6px; width: 34px; height: 34px; display:flex; align-items:center; justify-content:center; border-radius:50%; background: transparent; border: none; }
+
+/* Adjust in dark mode: make bg circle darker so it's visible */
+body.dark-mode .dark-toggle-wrapper .dm-bg-circle { background: rgba(255,255,255,0.06); box-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+body.dark-mode .dark-toggle-wrapper .dm-toggle i { color: #e6eef8; }
+
+/* Ensure the icon color is dark on light background */
+.dark-toggle-wrapper .dm-toggle i { color: #1f2937; }

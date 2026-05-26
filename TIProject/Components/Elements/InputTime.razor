@@ -1,0 +1,40 @@
+@inherits InputBase<TimeSpan>
+
+<input type="time" class="@CssClass"
+       value="@FormatValueAsString(Value)"
+       @oninput="OnInputChanged" />
+
+@code {
+    private async Task OnInputChanged(ChangeEventArgs e)
+    {
+        var strValue = e.Value?.ToString();
+
+        if (TimeSpan.TryParse(strValue, out var parsed))
+        {
+            CurrentValue = parsed;
+        }
+        else
+        {
+
+        }
+
+        await ValueChanged.InvokeAsync(CurrentValue);
+    }
+
+    protected override string FormatValueAsString(TimeSpan value)
+    {
+        return value.ToString(@"hh\:mm");
+    }
+
+    protected override bool TryParseValueFromString(string value, out TimeSpan result, out string validationErrorMessage)
+    {
+        if (TimeSpan.TryParse(value, out result))
+        {
+            validationErrorMessage = null;
+            return true;
+        }
+
+        validationErrorMessage = "Formato de hora no válido. Use HH:mm";
+        return false;
+    }
+}

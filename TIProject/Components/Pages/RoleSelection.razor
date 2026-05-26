@@ -1,0 +1,73 @@
+﻿@page "/roleSelection"
+@inject NavigationManager Navigation
+@inject IRepoUsers repoUsers
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<link href="css/roleselection.css" rel="stylesheet" />
+
+<PageTitle>Selección de Rol</PageTitle>
+
+<div class="selectrole-page">
+    <div class="selectrole-card">
+        <div class="selectrole-left">
+            <h2 style="margin:0 0 12px 0;">¿Quién eres?</h2>
+            <p style="margin:0 0 24px 0;color:#666;">Selecciona el rol con el que deseas iniciar sesión.</p>
+
+            <div class="selectrole-roles">
+                <button type="button" class="selectrole-btn" @onclick="() => Select(Role.admin)">
+                    <strong>Administrador</strong>
+                    <div class="small-desc">Acceso total</div>
+                </button>
+                <button type="button" class="selectrole-btn" @onclick="() => Select(Role.brigaderChief)">
+                    <strong>Jefe de Brigada</strong>
+                    <div class="small-desc">Encargado de piso</div>
+                </button>
+                <button type="button" class="selectrole-btn" @onclick="() => Select(Role.brigaderChief)">
+                    <strong>Auxiliar</strong>
+                    <div class="small-desc">Auxiliar de piso</div>
+                </button>
+                <button type="button" class="selectrole-btn" @onclick="() => Select(Role.brigader)">
+                    <strong>Brigadista</strong>
+                    <div class="small-desc">Gestión de información</div>
+                </button>
+                <button type="button" class="selectrole-btn" @onclick="() => Select(Role.student)">
+                    <strong>Estudiante</strong>
+                    <div class="small-desc">Acceso limitado</div>
+                </button>
+            </div>
+        </div>
+        <div class="selectrole-right" style="position:relative;">
+            <div class="dark-toggle-wrapper" style="position:absolute; right:12px; top:12px; display:inline-flex; align-items:center; justify-content:center;">
+                <span class="dm-bg-circle" aria-hidden="true"></span>
+                <button class="icon-btn dm-toggle" type="button" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+            </div>
+
+            <div class="selectrole-icon"><i class="fas fa-shield-alt"></i></div>
+            <div style="text-align:center;">Protección Civil<br /><small>Panel Administrativo</small></div>
+            <nav>
+                <button class="menu-item" Update-Database onclick="location.href='/'"><i class="fas fa-sign-out-alt"></i><span>Salir</span></button>
+            </nav>
+        </div>
+    </div>
+</div>
+
+
+@code {
+
+    void Select(Role role)
+    {
+        Console.WriteLine($"{(int)role}' role selected'");
+        Navigation.NavigateTo($"/login?role={(int)role}", forceLoad: true);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("initDarkMode"); } catch { }
+        }
+    }
+}

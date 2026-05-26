@@ -1,0 +1,163 @@
+.login-bg {
+    background: #ffff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.login-container {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-width: 1000px;
+  width: 100%;
+  display: flex;
+  min-height: 500px;
+}
+
+.login-left {
+    flex: 1;
+    background: linear-gradient(135deg, #64B32E 0%, #527630 100%);
+    padding: 60px 40px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.login-left::before{
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="30" cy="25" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="70" cy="15" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="20" cy="70" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
+  opacity: 0.3;
+}
+
+.logo-circle {
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  backdrop-filter: blur(10px);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.logo-circle i { font-size: 60px; color: white; }
+
+.login-right { flex: 1; padding: 60px 50px; background: white; position: relative; }
+
+.btn-login {
+    background: linear-gradient(135deg, #64B32E 0%, #527630 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    margin-top: 25px;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+    .btn-login:hover {
+        transform: translateY(-2px);
+        color: white;
+        box-shadow: 0 8px 20px #527630;
+        background: linear-gradient(135deg,#64B32E 0%,#527630 100%);
+    }
+.btn-login:active{
+    transform: translateY(0);
+}
+
+.form-control:focus {
+    border-color: #64B32E;
+    box-shadow: 0 0 0 0.2rem #64b32e0a;
+    outline: none;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.divider span {
+  background: white;
+  padding: 0 15px;
+  position: relative;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+}
+
+/* Dark mode overrides when site toggles body.dark-mode */
+body.dark-mode .login-bg {
+  background: #0b1116;
+}
+
+body.dark-mode .login-container {
+  background: #0f1720;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+/* Ensure divider label blends with dark card */
+body.dark-mode .divider span {
+  background: #0f1720; /* match login-container */
+  color: #9aa6b2;
+}
+
+body.dark-mode .divider::before, body.dark-mode .divider::after { background: #24303a; }
+
+body.dark-mode .login-left {
+    background: linear-gradient(135deg,#64B32E 0%,#527630 100%);
+}
+
+body.dark-mode .logo-circle {
+   background: rgba(255, 255, 255, 0.2);
+   backdrop-filter: blur(10px);
+   border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .login-left::before{ opacity: 0.06; }
+
+body.dark-mode .login-left h2,
+body.dark-mode .login-left p,
+body.dark-mode .logo-circle i {
+  color: #e6eef8;
+}
+
+body.dark-mode .login-right { background: transparent; }
+
+body.dark-mode .login-header h3 { color: #e6eef8; }
+body.dark-mode .subtitle, body.dark-mode .form-label { color: #9aa6b2; }
+
+body.dark-mode .form-control { background: #0b0f12; color: #e6eef8; border-color: #29313a; }
+body.dark-mode .input-group-text { background: #071014; border-color: #29313a; color: #9aa6b2; }
+body.dark-mode .btn-login { background: linear-gradient(135deg,#64B32E 0%,#527630 100%); }
+body.dark-mode .alert.alert-danger { background: #2b1111; border-color: #582121; color: #ffd6d6; }
+body.dark-mode .alert.alert-warning { background: #2b2613; border-color: #5a4f1f; color: #fff3cd; }
+
+/* Ensure inputs and text inside login page use appropriate color in dark mode */
+body.dark-mode input, body.dark-mode textarea, body.dark-mode select { color: #e6eef8; }
