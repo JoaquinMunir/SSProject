@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "admin")]
 @using TIProject.Data
 @using System.Linq
+@using System.IO
 @inject NavigationManager Navigation
 @inject TIProject.Data.Documents DocService
 @inject IRepoUsers repoUsers
@@ -19,9 +20,7 @@
 <div class="dashboard-layout">
     <aside class="sidebar">
         <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-shield-alt"></i>
-            </div>
+            <div class="logo"><i class="fas fa-shield-alt"></i></div>
             <div class="logo-text">
                 <h1>Protección Civil</h1>
                 <p>Panel Administrativo</p>
@@ -29,23 +28,16 @@
         </div>
         <nav>
             <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/"))">
-                <i class="fas fa-home"></i>
-                <span>Dashboard</span>
+                <i class="fas fa-home"></i><span>Dashboard</span>
             </button>
-
             <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))">
-                <i class="fas fa-users"></i>
-                <span>Gestión de Cursos</span>
+                <i class="fas fa-users"></i><span>Gestión de Cursos</span>
             </button>
-
             <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))">
-                <i class="fas fa-book"></i>
-                <span>Gestión de Usuarios</span>
+                <i class="fas fa-book"></i><span>Gestión de Usuarios</span>
             </button>
-
             <button type="button" class="menu-item active" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/documents"))">
-                <i class="fas fa-file-alt"></i>
-                <span>Gestión de Documentos</span>
+                <i class="fas fa-file-alt"></i><span>Gestión de Documentos</span>
             </button>
         </nav>
     </aside>
@@ -56,11 +48,9 @@
                 <button class="icon-btn" type="button" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
                     <i class="fas fa-moon" id="darkModeIcon"></i>
                 </button>
-
                 <div class="user-avatar" @onclick="ToggleUserMenu" title="@_user.Name">
                     @(!string.IsNullOrEmpty(_user.Name) ? _user.Name[0].ToString().ToUpper() : "U")
                 </div>
-
                 <div class="user-menu @(showUserMenu ? "show" : "")">
                     <p><strong>Nombre:</strong> @_user.Name</p>
                     <p><strong>Email:</strong> @_user.Email</p>
@@ -70,7 +60,6 @@
                     }
                     <p><strong>Rol:</strong> @_user.Role.GetDisplayName()</p>
                 </div>
-
                 <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/account/logout'">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
@@ -82,104 +71,273 @@
                 <h1>Gestión de Documentos</h1>
                 <p>Administra los documentos y archivos de Protección Civil</p>
 
-                <div class="card mb-4 p-3 shadow-sm upload-card">
-                    <h4><i class="fas fa-upload me-2"></i>Subir Nuevo Documento</h4>
-                    <p class="text-muted small">Tipos permitidos: PDF, Word, Excel, PowerPoint, imágenes (PNG, JPG). Máximo 20MB.</p>
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label">Título</label>
-                            <input type="text" @bind="nuevoTitulo" class="form-control" placeholder="Nombre del documento..." />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Categoría</label>
-                            <select @bind="nuevaCategoria" class="form-select">
-                                <option>General</option>
-                                <option>Boletines</option>
-                                <option>Guías</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">Archivo</label>
-                            <InputFile OnChange="SubirArchivoReal" class="form-control" />
-                        </div>
+                <!-- ═══ TARJETA DE CARGA ═══════════════════════════════════════ -->
+                <div class="upload-card">
+                    <div class="upload-card-header">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Subir nuevo documento</span>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(uploadError))
+                    @if (_stagedBytes == null)
                     {
-                        <div class="alert alert-danger mt-3">
-                            <i class="fas fa-exclamation-triangle me-2"></i>@uploadError
+                        <!-- ── PASO 1: seleccionar archivo ─────────────────────── -->
+                        <p class="upload-hint">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Tipos permitidos: PDF, Word, Excel, PowerPoint, imágenes, TXT, CSV.
+                            Tamaño máximo: <strong>20 MB</strong>.
+                        </p>
+
+                        <div class="upload-fields">
+                            <div class="field-group">
+                                <label class="field-label">Título del documento</label>
+                                <input type="text" @bind="nuevoTitulo" class="form-control"
+                                       placeholder="Ej. Protocolo de evacuación 2025..." />
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Categoría</label>
+                                <select @bind="nuevaCategoria" class="form-select">
+                                    <option>General</option>
+                                    <option>Boletines</option>
+                                    <option>Guías</option>
+                                    <option>Protocolos</option>
+                                    <option>Reportes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="file-drop-area">
+                            <i class="fas fa-file-arrow-up fa-2x mb-2" style="color:#94a3b8;"></i>
+                            <p style="color:#64748b; margin:0 0 8px;">Selecciona el archivo a subir</p>
+                            <InputFile key="@_inputFileKey" OnChange="OnArchivoCambiado"
+                                       class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.bmp,.txt,.csv" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(uploadError))
+                        {
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <i class="fas fa-ban me-2"></i>@uploadError
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <!-- ── PASO 2: panel de análisis de seguridad ──────────── -->
+                        <div class="security-panel @(_preValidation?.SecurityLevel ?? "safe")">
+
+                            <div class="sec-panel-title">
+                                <i class="fas fa-shield-halved"></i>
+                                <strong>Análisis de seguridad previo</strong>
+                                <span class="sec-badge @(_preValidation?.SecurityLevel ?? "safe")">
+                                    @((_preValidation?.SecurityLevel ?? "") switch {
+                                        "safe"    => "✅ Seguro",
+                                        "caution" => "⚠️ Con advertencia",
+                                        "danger"  => "❌ Rechazado",
+                                        _         => "✅ Seguro"
+                                    })
+                                </span>
+                            </div>
+
+                            <div class="file-info-grid">
+                                <div class="file-info-item">
+                                    <span class="fi-label">Nombre</span>
+                                    <span class="fi-value">@_stagedFileName</span>
+                                </div>
+                                <div class="file-info-item">
+                                    <span class="fi-label">Tamaño</span>
+                                    <span class="fi-value">@FormatSize(_stagedBytes.Length)</span>
+                                </div>
+                                <div class="file-info-item">
+                                    <span class="fi-label">Extensión</span>
+                                    <span class="fi-value ext-badge">
+                                        @Path.GetExtension(_stagedFileName).ToUpperInvariant()
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="checks-list">
+                                <p class="checks-title"><i class="fas fa-list-check me-1"></i> Verificaciones realizadas:</p>
+                                <div class="check-row ok">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Nombre de archivo sin caracteres peligrosos ni extensiones ocultas</span>
+                                </div>
+                                <div class="check-row ok">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Extensión <strong>@Path.GetExtension(_stagedFileName).ToLower()</strong> incluida en la lista de tipos permitidos</span>
+                                </div>
+                                <div class="check-row ok">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Tamaño dentro del límite de 20 MB (@FormatSize(_stagedBytes.Length))</span>
+                                </div>
+                                <div class="check-row info">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Verificación de firma interna pendiente</span>
+                                </div>
+                                @if (_preValidation?.Warnings.Count > 0)
+                                {
+                                    @foreach (var w in _preValidation.Warnings)
+                                    {
+                                        <div class="check-row warn">
+                                            <i class="fas fa-triangle-exclamation"></i>
+                                            <span>@w</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(uploadError))
+                            {
+                                <div class="alert alert-danger mt-3 mb-0">
+                                    <i class="fas fa-ban me-2"></i><strong>Carga rechazada:</strong> @uploadError
+                                </div>
+                            }
+
+                            <div class="panel-actions">
+                                <button class="btn btn-outline-secondary" type="button"
+                                        @onclick="CancelarSeleccion" disabled="@isUploading">
+                                    <i class="fas fa-xmark me-1"></i> Cancelar y elegir otro
+                                </button>
+
+                                @if (!isUploading)
+                                {
+                                    <button class="btn btn-success" type="button" @onclick="SubirArchivoReal">
+                                        <i class="fas fa-cloud-arrow-up me-1"></i> Confirmar y subir
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-success" type="button" disabled>
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        Verificando y subiendo...
+                                    </button>
+                                }
+                            </div>
                         </div>
                     }
 
                     @if (!string.IsNullOrEmpty(uploadSuccess))
                     {
-                        <div class="alert alert-success mt-3">
-                            <i class="fas fa-check-circle me-2"></i>@uploadSuccess
-                        </div>
-                    }
-
-                    @if (isUploading)
-                    {
-                        <div class="mt-3 d-flex align-items-center gap-2 text-primary">
-                            <div class="spinner-border spinner-border-sm" role="status"></div>
-                            <span>Subiendo archivo, por favor espere...</span>
+                        <div class="alert alert-success mt-3 mb-0">
+                            <i class="fas fa-circle-check me-2"></i>@uploadSuccess
                         </div>
                     }
                 </div>
 
+                <!-- ═══ TABLA DE DOCUMENTOS ═══════════════════════════════════ -->
                 @{
                     var docs = DocService.GetAll().ToList();
                 }
 
-                @if (docs.Count > 0)
-                {
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th><i class="fas fa-file me-1"></i> Nombre</th>
-                                <th><i class="fas fa-tag me-1"></i> Categoría</th>
-                                <th><i class="fas fa-calendar me-1"></i> Fecha</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var doc in docs)
-                            {
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 16px; color: #444;">
+                        <i class="fas fa-folder-open me-2"></i>Documentos almacenados
+                        <span class="badge bg-secondary ms-2" style="font-size:14px;">@docs.Count</span>
+                    </h3>
+
+                    @if (docs.Count > 0)
+                    {
+                        <table class="table table-striped table-hover align-middle">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <i class="@GetFileIcon(doc.Type) me-2 text-muted"></i>
-                                        @doc.Title <small class="text-muted">(@doc.Type)</small>
-                                    </td>
-                                    <td><span class="badge bg-secondary">@doc.Category</span></td>
-                                    <td>@doc.UploadDate.ToShortDateString()</td>
-                                    <td>
-                                        <button class="btn btn-outline-danger btn-sm" title="Eliminar" @onclick="() => Eliminar(doc)">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </td>
+                                    <th><i class="fas fa-file me-1"></i> Documento</th>
+                                    <th><i class="fas fa-tag me-1"></i> Categoría</th>
+                                    <th><i class="fas fa-weight-hanging me-1"></i> Tamaño</th>
+                                    <th><i class="fas fa-calendar me-1"></i> Fecha</th>
+                                    <th>Acción</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No hay documentos subidos todavía.
-                    </div>
-                }
+                            </thead>
+                            <tbody>
+                                @foreach (var doc in docs)
+                                {
+                                    <tr>
+                                        <td>
+                                            <i class="@GetFileIcon(doc.Type) me-2" style="color:#64748b;"></i>
+                                            <strong>@doc.Title</strong>
+                                            <small class="text-muted ms-1">(@doc.Type)</small>
+                                        </td>
+                                        <td><span class="badge bg-secondary">@doc.Category</span></td>
+                                        <td>@doc.Size</td>
+                                        <td>@doc.UploadDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-outline-danger btn-sm" title="Eliminar"
+                                                    @onclick="() => Eliminar(doc)">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-folder-open me-2"></i>No hay documentos almacenados todavía.
+                        </div>
+                    }
+                </div>
             </div>
         </main>
     </div>
 </div>
 
 <style>
-    .upload-card { background: white; border-radius: 12px; border: 1px solid #eee; }
-    body.dark-mode .upload-card { background: #1a202c; border-color: #4a5568; color: #e2e8f0; }
-    body.dark-mode .upload-card label { color: #cbd5e0; }
-    body.dark-mode .upload-card .text-muted { color: #a0aec0 !important; }
+    .upload-card { background: white; border-radius: 14px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
+    .upload-card-header { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
+    .upload-card-header i { color: #3b82f6; font-size: 20px; }
+    .upload-hint { color: #64748b; font-size: 13.5px; margin-bottom: 18px; }
+    .upload-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+    .field-label { font-size: 13px; font-weight: 600; color: #374151; }
+    .file-drop-area { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 24px; text-align: center; background: #f8fafc; }
+
+    .security-panel { border-radius: 12px; padding: 22px; border: 2px solid #d1d5db; background: #f9fafb; }
+    .security-panel.safe    { border-color: #10b981; background: #f0fdf4; }
+    .security-panel.caution { border-color: #f59e0b; background: #fffbeb; }
+    .security-panel.danger  { border-color: #ef4444; background: #fef2f2; }
+
+    .sec-panel-title { display: flex; align-items: center; gap: 10px; font-size: 15px; margin-bottom: 18px; }
+    .sec-panel-title i { font-size: 18px; color: #475569; }
+    .sec-badge { margin-left: auto; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .sec-badge.safe    { background: #d1fae5; color: #065f46; }
+    .sec-badge.caution { background: #fef3c7; color: #92400e; }
+    .sec-badge.danger  { background: #fee2e2; color: #991b1b; }
+
+    .file-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; background: rgba(255,255,255,0.65); border-radius: 8px; padding: 14px; }
+    .file-info-item { display: flex; flex-direction: column; gap: 3px; }
+    .fi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; font-weight: 600; }
+    .fi-value { font-size: 14px; color: #111827; word-break: break-all; }
+    .ext-badge { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 4px; padding: 1px 7px; font-size: 13px; font-weight: 700; }
+
+    .checks-list { margin-bottom: 16px; }
+    .checks-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+    .check-row { display: flex; align-items: flex-start; gap: 9px; padding: 7px 12px; border-radius: 7px; margin-bottom: 6px; font-size: 13.5px; }
+    .check-row i { margin-top: 2px; flex-shrink: 0; }
+    .check-row.ok   { background: #dcfce7; color: #14532d; }
+    .check-row.info { background: #dbeafe; color: #1e3a8a; }
+    .check-row.warn { background: #fef9c3; color: #713f12; }
+    .check-row.fail { background: #fee2e2; color: #7f1d1d; font-weight: 600; }
+
+    .panel-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08); }
+
+    body.dark-mode .upload-card { background: #1a202c; border-color: #4a5568; }
+    body.dark-mode .upload-card-header { color: #e2e8f0; }
+    body.dark-mode .field-label { color: #cbd5e0; }
+    body.dark-mode .upload-hint { color: #a0aec0; }
+    body.dark-mode .file-drop-area { background: #2d3748; border-color: #4a5568; }
+    body.dark-mode .security-panel { background: #1e2533; }
+    body.dark-mode .security-panel.safe    { border-color: #059669; background: #0c2017; }
+    body.dark-mode .security-panel.caution { border-color: #d97706; background: #1f1708; }
+    body.dark-mode .security-panel.danger  { border-color: #dc2626; background: #200d0d; }
+    body.dark-mode .file-info-grid { background: rgba(255,255,255,0.05); }
+    body.dark-mode .fi-value { color: #e2e8f0; }
+    body.dark-mode .checks-title { color: #cbd5e0; }
     body.dark-mode .table { color: #e2e8f0; }
-    body.dark-mode .table thead { background: #2d3748; }
+    body.dark-mode h3 { color: #e2e8f0 !important; }
+
+    @@media (max-width: 640px) {
+        .upload-fields { grid-template-columns: 1fr; }
+        .file-info-grid { grid-template-columns: 1fr 1fr; }
+    }
 </style>
 
 @code {
@@ -187,14 +345,26 @@
 
     private User _user = new();
     private bool showUserMenu = false;
+    private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
 
+    // Campos del formulario
     private string nuevoTitulo = "";
     private string nuevaCategoria = "General";
+
+    // Estado del archivo:
+    //   null  → paso 1 (mostrar selector de archivo)
+    //   byte[] → paso 2 (mostrar panel de seguridad + botón confirmar)
+    private byte[]? _stagedBytes = null;
+    private string _stagedFileName = "";
+    private FileValidationResult? _preValidation = null;
+    private int _inputFileKey = 0;
+
+    // Estado de la operación de subida
     private bool isUploading = false;
     private string uploadError = "";
     private string uploadSuccess = "";
 
-    private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
+    // ── Inicialización ────────────────────────────────────────────────────
 
     protected override async Task OnInitializedAsync()
     {
@@ -219,51 +389,125 @@
         }
     }
 
-    private async Task SubirArchivoReal(InputFileChangeEventArgs e)
+    // ── Paso 1: archivo seleccionado ─────────────────────────────────────
+    //   Lee los bytes INMEDIATAMENTE mientras el stream del navegador está
+    //   abierto. En Blazor Server, IBrowserFile solo es legible dentro del
+    //   mismo evento OnChange; no se puede guardar la referencia para después.
+
+    private async Task OnArchivoCambiado(InputFileChangeEventArgs e)
     {
-        isUploading = true;
+        // Resetear estado previo
+        _stagedBytes = null;
+        _preValidation = null;
         uploadError = "";
         uploadSuccess = "";
+
+        var file = e.File;
+        _stagedFileName = file.Name;
+
+        // Pre-validación (extensión, nombre, tamaño) — sin leer el stream
+        var preResult = Documents.PreValidate(file.Name, file.Size);
+
+        if (!preResult.IsValid)
+        {
+            // Extensión prohibida, doble extensión, etc. → mostrar error en paso 1
+            uploadError = preResult.Error ?? "Archivo no permitido.";
+            return;
+        }
+
+        // Leer los bytes mientras el stream del navegador está vivo
+        try
+        {
+            using var ms = new MemoryStream();
+            await using var stream = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+            await stream.CopyToAsync(ms);
+            _stagedBytes = ms.ToArray();
+            _preValidation = preResult;
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"No se pudo leer el archivo: {ex.Message}";
+        }
+    }
+
+    // ── Paso 2: confirmar subida ──────────────────────────────────────────
+    //   Los bytes ya están en _stagedBytes; el servidor valida el contenido
+    //   real (magic bytes, PE header) y guarda en disco.
+
+    private async Task SubirArchivoReal()
+    {
+        if (_stagedBytes is null) return;
+
+        isUploading = true;
+        uploadError = "";
         StateHasChanged();
 
         try
         {
-            if (string.IsNullOrWhiteSpace(nuevoTitulo)) nuevoTitulo = e.File.Name;
-            await DocService.UploadFile(e.File, nuevoTitulo, nuevaCategoria);
-            uploadSuccess = $"El documento '{nuevoTitulo}' se subió correctamente.";
+            var title = string.IsNullOrWhiteSpace(nuevoTitulo) ? _stagedFileName : nuevoTitulo;
+            await DocService.UploadFile(_stagedBytes, _stagedFileName, title, nuevaCategoria);
+
+            uploadSuccess = $"✅  '{title}' se subió correctamente.";
             nuevoTitulo = "";
+            nuevaCategoria = "General";
+            _stagedBytes = null;
+            _preValidation = null;
+            _inputFileKey++;          // forzar reset del <InputFile>
         }
         catch (InvalidOperationException ex)
         {
+            // Error de validación de contenido (magic bytes, PE header, etc.)
             uploadError = ex.Message;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            uploadError = "Error al subir el archivo. Verifica el tipo y tamaño.";
+            uploadError = $"{ex.GetType().Name}: {ex.Message}";
         }
 
         isUploading = false;
-        StateHasChanged();
     }
+
+    // ── Cancelar ──────────────────────────────────────────────────────────
+
+    private void CancelarSeleccion()
+    {
+        _stagedBytes = null;
+        _preValidation = null;
+        _stagedFileName = "";
+        uploadError = "";
+        _inputFileKey++;
+    }
+
+    // ── Eliminar documento ────────────────────────────────────────────────
 
     private async Task Eliminar(Documento doc)
     {
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Seguro que deseas eliminar '{doc.Title}'?");
-        if (confirmed)
+        bool ok = await JS.InvokeAsync<bool>("confirm", $"¿Seguro que deseas eliminar '{doc.Title}'?");
+        if (ok)
         {
             DocService.Delete(doc);
             StateHasChanged();
         }
     }
 
-    private string GetFileIcon(string type) => type.ToLower() switch
+    // ── Helpers de presentación ───────────────────────────────────────────
+
+    private static string FormatSize(long bytes) => bytes switch
     {
-        ".pdf"  => "fas fa-file-pdf",
-        ".doc" or ".docx" => "fas fa-file-word",
-        ".xls" or ".xlsx" => "fas fa-file-excel",
-        ".ppt" or ".pptx" => "fas fa-file-powerpoint",
-        ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" => "fas fa-file-image",
-        ".txt" or ".csv"  => "fas fa-file-alt",
-        _ => "fas fa-file"
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / 1024.0 / 1024.0:F1} MB"
+    };
+
+    private static string GetFileIcon(string type) => type.ToUpper() switch
+    {
+        "PDF"                    => "fas fa-file-pdf",
+        "DOC" or "DOCX"         => "fas fa-file-word",
+        "XLS" or "XLSX"         => "fas fa-file-excel",
+        "PPT" or "PPTX"         => "fas fa-file-powerpoint",
+        "PNG" or "JPG" or "JPEG"
+             or "GIF" or "BMP"  => "fas fa-file-image",
+        "TXT" or "CSV"          => "fas fa-file-lines",
+        _                       => "fas fa-file"
     };
 }
