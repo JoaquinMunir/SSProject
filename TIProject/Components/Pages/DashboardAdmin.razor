@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "admin")]
 @using System.Linq
+@using System.Security.Claims
 @inject NavigationManager Navigation
 @inherits LayoutComponentBase
 @inject IRepoUsers repoUsers
@@ -88,7 +89,7 @@
                 <p>Resumen de actividad de Protección Civil</p>
 
                 <div class="summary-section">
-                    <div class="summary-card users-card">
+                    <div class="summary-card users-card" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))" style="cursor: pointer;">
                         <div class="card-icon">
                             <i class="fas fa-users"></i>
                         </div>
@@ -110,7 +111,7 @@
                         </div>
                     </div>
 
-                    <div class="summary-card courses-card">
+                    <div class="summary-card courses-card" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))" style="cursor: pointer;">
                         <div class="card-icon">
                             <i class="fas fa-calendar-alt"></i>
                         </div>
@@ -120,6 +121,18 @@
                                 @allCourses.Count(c => c.Date >= DateTime.Today)
                             </span>
                         </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions" style="margin-top: 30px; background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <h3 style="margin-bottom: 20px; color: #1e293b; font-size: 1.25rem; font-weight: 700;">Acciones Rápidas</h3>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" style="padding: 12px 24px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 8px;" @onclick="@(() => Navigation.NavigateTo("/add"))">
+                            <i class="fas fa-user-plus"></i> Nuevo Usuario
+                        </button>
+                        <button class="btn btn-success" style="padding: 12px 24px; border-radius: 8px; background-color: #10b981; border: none; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px;" @onclick="@(() => Navigation.NavigateTo("/addCourse"))">
+                            <i class="fas fa-calendar-plus"></i> Nuevo Curso
+                        </button>
                     </div>
                 </div>
 
@@ -177,8 +190,8 @@
     .member-count { display: block; font-size: 20px; font-weight: 700; color: #333; margin-bottom: 10px; }
     .progress-bar-bg { width: 100%; height: 6px; background-color: #eee; border-radius: 3px; overflow: hidden; }
     .progress-bar-fill { height: 100%; background-color: #f59e0b; border-radius: 3px; }
-    body.dark-mode .summary-card, body.dark-mode .brigade-detail-card { background: #1a202c; border-color: #4a5568; }
-    body.dark-mode .card-number, body.dark-mode .member-count { color: white; }
+    body.dark-mode .summary-card, body.dark-mode .brigade-detail-card, body.dark-mode .quick-actions { background: #1a202c; border-color: #4a5568; }
+    body.dark-mode .card-number, body.dark-mode .member-count, body.dark-mode .quick-actions h3 { color: white; }
     body.dark-mode .brigade-header h4, body.dark-mode .card-info h3 { color: #cbd5e0; }
 </style>
 

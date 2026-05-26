@@ -1,6 +1,7 @@
 ﻿@page "/dashboard_admin/courses"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.WebUtilities
+@attribute [Authorize(Roles = "admin")]
+@using System.Security.Claims
 @inject NavigationManager Navigation
 @inherits LayoutComponentBase
 @inject IRepoUsers repoUsers
@@ -26,22 +27,22 @@
             </div>
         </div>
         <nav>
-            <button type="button" class="menu-item" @onclick="@(() => NavigateTo("/dashboard_admin/"))">
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/"))">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </button>
 
-            <button type="button" class="menu-item active" @onclick="@(() => NavigateTo("/dashboard_admin/courses"))">
+            <button type="button" class="menu-item active" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))">
                 <i class="fas fa-users"></i>
                 <span>Gestión de Cursos</span>
             </button>
 
-            <button type="button" class="menu-item" @onclick="@(() => NavigateTo("/dashboard_admin/users"))">
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))">
                 <i class="fas fa-book"></i>
                 <span>Gestión de Usuarios</span>
             </button>
 
-            <button type="button" class="menu-item" @onclick="@(() => NavigateTo("/dashboard_admin/documents"))">
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/documents"))">
                 <i class="fas fa-file-alt"></i>
                 <span>Gestión de Documentos</span>
             </button>
@@ -75,7 +76,7 @@
                     private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
                 }
 
-                <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/roleSelection'">
+                <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/account/logout'">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -305,6 +306,8 @@
 
 @code
 {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private User _user = new();
     private List<User> allUsers = new();
     private List<Course> allCourses = new();
@@ -323,29 +326,16 @@
         allUsers = await repoUsers.GetAll();
         allCourses = await repoCourses.GetAll();
 
-        // Lógica para obtener el usuario actual desde la URL (para mantener sesión en admin panel)
-        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        if (!string.IsNullOrEmpty(uri.Query))
+        if (AuthStateTask is not null)
         {
-            var queryDict = QueryHelpers.ParseQuery(uri.Query);
-            if (queryDict.TryGetValue("id", out var idInt) && int.TryParse(idInt, out int id))
+            var authState = await AuthStateTask;
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userId, out int id))
             {
-                var userDB = allUsers.FirstOrDefault(u => u.Id == id);
-                if (userDB != null)
-                {
-                    _user = userDB;
-                }
+                var userDb = allUsers.FirstOrDefault(u => u.Id == id);
+                if (userDb is not null) _user = userDb;
             }
         }
-        Console.WriteLine($"El usuario {_user.Name} acaba de ingresar al panel de cursos");
-    }
-
-    private void NavigateTo(string page)
-    {
-        if (_user != null && _user.Id > 0)
-            Navigation.NavigateTo($"{page}?id={_user.Id}");
-        else
-            Navigation.NavigateTo(page);
     }
 
     private void Editar(int id)

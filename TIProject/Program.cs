@@ -91,22 +91,20 @@ app.MapPost("/account/login", async (HttpContext context, IRepoUsers repoUsers) 
     var roleStr = form["role"].ToString();
     var remember = form["remember"].ToString() == "true";
 
-    if (!int.TryParse(idNumberStr, out int idNumber) ||
-        !int.TryParse(roleStr, out int roleInt) ||
-        !Enum.IsDefined(typeof(Role), roleInt) ||
-        string.IsNullOrWhiteSpace(password))
+    if (!int.TryParse(idNumberStr, out int idNumber) || string.IsNullOrWhiteSpace(password))
     {
         context.Response.Redirect($"/login?role={roleStr}&error=1");
         return;
     }
 
-    var selectedRole = (Role)roleInt;
+    var selectedRoleIntent = int.TryParse(roleStr, out int rInt) ? (Role?)rInt : null;
+    
     var allUsers = await repoUsers.GetAll();
-    var user = allUsers.FirstOrDefault(u => u.IdNumber == idNumber && u.Role == selectedRole);
+    var user = allUsers.FirstOrDefault(u => u.IdNumber == idNumber);
 
     if (user is null)
     {
-        context.Response.Redirect($"/login?role={roleInt}&error=1");
+        context.Response.Redirect($"/login?role={roleStr}&error=1");
         return;
     }
 
@@ -132,16 +130,17 @@ app.MapPost("/account/login", async (HttpContext context, IRepoUsers repoUsers) 
 
     if (!passwordValid)
     {
-        context.Response.Redirect($"/login?role={roleInt}&error=1");
+        context.Response.Redirect($"/login?role={roleStr}&error=1");
         return;
     }
 
+    // El rol se obtiene SIEMPRE de la base de datos, nunca se confía en el parámetro 'role' del formulario para la autorización
     var claims = new List<Claim>
     {
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Name, user.Name ?? ""),
+        new Claim(ClaimTypes.Name, user.Name ?? "Usuario"),
         new Claim(ClaimTypes.Email, user.Email ?? ""),
-        new Claim(ClaimTypes.Role, user.Role.ToString()),
+        new Claim(ClaimTypes.Role, user.Role.ToString() ?? ""),
     };
     if (user.Brigade.HasValue)
         claims.Add(new Claim("Brigade", user.Brigade.Value.ToString()));

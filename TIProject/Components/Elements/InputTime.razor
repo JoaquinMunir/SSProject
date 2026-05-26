@@ -26,15 +26,22 @@
         return value.ToString(@"hh\:mm");
     }
 
-    protected override bool TryParseValueFromString(string value, out TimeSpan result, out string validationErrorMessage)
+    protected override bool TryParseValueFromString(string? value, out TimeSpan result, out string? validationErrorMessage)
     {
+        if (string.IsNullOrEmpty(value))
+        {
+            result = default;
+            validationErrorMessage = null;
+            return true;
+        }
+
         if (TimeSpan.TryParse(value, out result))
         {
             validationErrorMessage = null;
             return true;
         }
 
-        validationErrorMessage = "Formato de hora no v·lido. Use HH:mm";
+        validationErrorMessage = "Formato de hora no v√°lido. Use HH:mm";
         return false;
     }
 }

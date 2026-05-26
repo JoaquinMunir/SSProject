@@ -43,7 +43,7 @@
                         <span class="input-group-text"><i class="fas fa-user"></i></span>
                         <InputText @bind-Value="_user.Name" class="form-control" placeholder="Ingresa tu nombre" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.Name)" /></label>
+                    <ValidationMessage For="@(() => _user.Name)" />
                 </div>
 
                 <div class="mb-3">
@@ -52,7 +52,7 @@
                         <span class="input-group-text"><i class="fas fa-address-card"></i></span>
                         <InputNumber @bind-Value="_user.IdNumber" class="form-control" placeholder="Ingresa tu número de identificación" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.IdNumber)" /></label>
+                    <ValidationMessage For="@(() => _user.IdNumber)" />
                 </div>
 
                 <div class="mb-3">
@@ -61,7 +61,7 @@
                         <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                         <InputText @bind-Value="_user.Email" class="form-control" placeholder="Ingresa tu correo electrónico" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.Email)" /></label>
+                    <ValidationMessage For="@(() => _user.Email)" />
                 </div>
 
                 <div class="mb-3">
@@ -70,13 +70,13 @@
                     </label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <InputText type="password" @bind-Value="_plainPassword" class="form-control"
-                                   placeholder="@(Id > 0 ? "Nueva contraseña (opcional)" : "Ingresa tu contraseña")"
-                                   autocomplete="new-password" />
+                        <input type="password" @bind="_plainPassword" class="form-control"
+                               placeholder="@(Id > 0 ? "Nueva contraseña (opcional)" : "Ingresa tu contraseña")"
+                               autocomplete="new-password" />
                     </div>
-                    @if (Id == 0)
+                    @if (Id == 0 && string.IsNullOrWhiteSpace(_plainPassword) && showError)
                     {
-                        <label><ValidationMessage For="@(() => _user.Password)" /></label>
+                        <div class="validation-message">La contraseña es obligatoria para nuevos usuarios.</div>
                     }
                 </div>
 
@@ -86,7 +86,7 @@
                         <span class="input-group-text"><i class="fas fa-phone"></i></span>
                         <InputText @bind-Value="_user.PhoneNumber" class="form-control" placeholder="Ingresa tu número de teléfono" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.PhoneNumber)" /></label>
+                    <ValidationMessage For="@(() => _user.PhoneNumber)" />
                 </div>
 
                 <div class="mb-3">
@@ -95,7 +95,7 @@
                         <span class="input-group-text"><i class="fas fa-house"></i></span>
                         <InputText @bind-Value="_user.Address" class="form-control" placeholder="Ingresa tu domicilio" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.Address)" /></label>
+                    <ValidationMessage For="@(() => _user.Address)" />
                 </div>
 
                 <div class="mb-3">
@@ -104,7 +104,7 @@
                         <span class="input-group-text"><i class="fas fa-book"></i></span>
                         <InputText @bind-Value="_user.School" class="form-control" placeholder="Ingresa tu escuela" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.School)" /></label>
+                    <ValidationMessage For="@(() => _user.School)" />
                 </div>
 
                 <div class="mb-3">
@@ -113,14 +113,14 @@
                         <span class="input-group-text"><i class="fas fa-droplet"></i></span>
                         <InputText @bind-Value="_user.Blood" class="form-control" placeholder="Ingresa tu tipo de sangre" />
                     </div>
-                    <label><ValidationMessage For="@(() => _user.Blood)" /></label>
+                    <ValidationMessage For="@(() => _user.Blood)" />
                 </div>
 
                 <div class="mb-3 row">
                     <label class="form-label">Rol</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-user-gear"></i></span>
-                        <InputSelect @bind-Value="_user.Role" class="form-select" required>
+                        <InputSelect @bind-Value="_user.Role" class="form-select">
                             <option value="">Selecciona tu rol</option>
                             @foreach (Role role in Enum.GetValues(typeof(Role)))
                             {
@@ -128,7 +128,7 @@
                             }
                         </InputSelect>
                     </div>
-                    <label><ValidationMessage For="@(() => _user.Role)" /></label>
+                    <ValidationMessage For="@(() => _user.Role)" />
                 </div>
 
                 @if (_user.Role == Role.auxiliar || _user.Role == Role.brigader)
@@ -137,7 +137,7 @@
                         <label class="form-label">Brigada</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-id-card-clip"></i></span>
-                            <InputSelect @bind-Value="_user.Brigade" class="form-select" required>
+                            <InputSelect @bind-Value="_user.Brigade" class="form-select">
                                 <option value="">Selecciona tu brigada</option>
                                 @foreach (Brigade brigade in Enum.GetValues(typeof(Brigade)))
                                 {
@@ -145,7 +145,7 @@
                                 }
                             </InputSelect>
                         </div>
-                        <label><ValidationMessage For="@(() => _user.Brigade)" /></label>
+                        <ValidationMessage For="@(() => _user.Brigade)" />
                     </div>
                 }
 

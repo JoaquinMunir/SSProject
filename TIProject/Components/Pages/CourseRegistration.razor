@@ -139,6 +139,12 @@
 
         try
         {
+            if (course == null)
+            {
+                errorMessage = "Información del curso no válida.";
+                return;
+            }
+
             // Lógica de inscripción (Simulada, conecta tu repositorio aquí)
             Console.WriteLine($"Inscribiendo al usuario {user.Name} (ID: {user.Id}) al curso {course.Id}");
 

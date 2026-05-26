@@ -389,7 +389,6 @@
 </style>
 
 @code {
-    private string mError = "";
     private string currentSection = "inicio";
     private HashSet<string> categoriasAbiertas = new HashSet<string>();
     private List<Servicio> todosServicios = new List<Servicio>();
@@ -397,11 +396,11 @@
 
     private class ContactoFormModel
     {
-        public string Nombre { get; set; } = "";
-        public string Telefono { get; set; } = "";
-        public string Correo { get; set; } = "";
-        public string Tema { get; set; } = "";
-        public string Mensaje { get; set; } = "";
+        public string? Nombre { get; set; }
+        public string? Telefono { get; set; }
+        public string? Correo { get; set; }
+        public string? Tema { get; set; }
+        public string? Mensaje { get; set; }
     }
 
     private ContactoFormModel contactForm = new ContactoFormModel();
@@ -409,8 +408,8 @@
     private class Servicio
     {
         public int Numero { get; set; }
-        public string Nombre { get; set; }
-        public string Categoria { get; set; }
+        public string Nombre { get; set; } = "";
+        public string Categoria { get; set; } = "";
         public string Descripcion { get; set; } = "";
         public string Icono { get; set; } = "fas fa-file-alt";
     }
@@ -495,10 +494,8 @@
             string.IsNullOrWhiteSpace(contactForm.Telefono) ||
             string.IsNullOrWhiteSpace(contactForm.Correo))
         {
-            mError = "Por favor, completa todos los campos obligatorios.";
             return;
         }
-        mError = "";
         Console.WriteLine("Formulario enviado.");
     }
 
