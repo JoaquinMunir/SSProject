@@ -2,84 +2,236 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "admin")]
 @using TIProject.Data
+@using System.Linq
 @inject NavigationManager Navigation
 @inject TIProject.Data.Documents DocService
+@inject IRepoUsers repoUsers
 @inject IJSRuntime JS
+@inherits LayoutComponentBase
 
-<div style="padding: 20px;">
-    <h1>Gestión de Documentos</h1>
+<HeadContent>
+    <link href="css/dashboardIndex.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</HeadContent>
 
-    <div class="card mb-4 p-3 shadow-sm">
-        <h4>Subir Nuevo Documento</h4>
-        <p class="text-muted small">Tipos permitidos: PDF, Word, Excel, PowerPoint, imágenes (PNG, JPG). Máximo 20MB.</p>
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label>Título</label>
-                <input type="text" @bind="nuevoTitulo" class="form-control" placeholder="Nombre del documento..." />
+<PageTitle>Documentos - Administrador</PageTitle>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            <div class="col-md-3">
-                <label>Categoría</label>
-                <select @bind="nuevaCategoria" class="form-select">
-                    <option>General</option>
-                    <option>Boletines</option>
-                    <option>Guías</option>
-                </select>
-            </div>
-            <div class="col-md-5">
-                <label>Archivo</label>
-                <InputFile OnChange="SubirArchivoReal" class="form-control" />
+            <div class="logo-text">
+                <h1>Protección Civil</h1>
+                <p>Panel Administrativo</p>
             </div>
         </div>
+        <nav>
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/"))">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </button>
 
-        @if (!string.IsNullOrEmpty(uploadError))
-        {
-            <div class="alert alert-danger mt-2">
-                <i class="fas fa-exclamation-triangle me-2"></i>@uploadError
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))">
+                <i class="fas fa-users"></i>
+                <span>Gestión de Cursos</span>
+            </button>
+
+            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))">
+                <i class="fas fa-book"></i>
+                <span>Gestión de Usuarios</span>
+            </button>
+
+            <button type="button" class="menu-item active" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/documents"))">
+                <i class="fas fa-file-alt"></i>
+                <span>Gestión de Documentos</span>
+            </button>
+        </nav>
+    </aside>
+
+    <div class="main-area">
+        <header class="header">
+            <div class="header-actions">
+                <button class="icon-btn" type="button" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+
+                <div class="user-avatar" @onclick="ToggleUserMenu" title="@_user.Name">
+                    @(!string.IsNullOrEmpty(_user.Name) ? _user.Name[0].ToString().ToUpper() : "U")
+                </div>
+
+                <div class="user-menu @(showUserMenu ? "show" : "")">
+                    <p><strong>Nombre:</strong> @_user.Name</p>
+                    <p><strong>Email:</strong> @_user.Email</p>
+                    @if (_user.Brigade != null)
+                    {
+                        <p><strong>Brigada:</strong> @_user.Brigade.GetDisplayName()</p>
+                    }
+                    <p><strong>Rol:</strong> @_user.Role.GetDisplayName()</p>
+                </div>
+
+                <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/account/logout'">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
-        }
+        </header>
 
-        @if (isUploading)
-        {
-            <p class="text-primary mt-2">Subiendo... Espere.</p>
-        }
+        <main class="main-content">
+            <div class="dashboard-content">
+                <h1>Gestión de Documentos</h1>
+                <p>Administra los documentos y archivos de Protección Civil</p>
+
+                <div class="card mb-4 p-3 shadow-sm upload-card">
+                    <h4><i class="fas fa-upload me-2"></i>Subir Nuevo Documento</h4>
+                    <p class="text-muted small">Tipos permitidos: PDF, Word, Excel, PowerPoint, imágenes (PNG, JPG). Máximo 20MB.</p>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Título</label>
+                            <input type="text" @bind="nuevoTitulo" class="form-control" placeholder="Nombre del documento..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Categoría</label>
+                            <select @bind="nuevaCategoria" class="form-select">
+                                <option>General</option>
+                                <option>Boletines</option>
+                                <option>Guías</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Archivo</label>
+                            <InputFile OnChange="SubirArchivoReal" class="form-control" />
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(uploadError))
+                    {
+                        <div class="alert alert-danger mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>@uploadError
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(uploadSuccess))
+                    {
+                        <div class="alert alert-success mt-3">
+                            <i class="fas fa-check-circle me-2"></i>@uploadSuccess
+                        </div>
+                    }
+
+                    @if (isUploading)
+                    {
+                        <div class="mt-3 d-flex align-items-center gap-2 text-primary">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span>Subiendo archivo, por favor espere...</span>
+                        </div>
+                    }
+                </div>
+
+                @{
+                    var docs = DocService.GetAll().ToList();
+                }
+
+                @if (docs.Count > 0)
+                {
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-file me-1"></i> Nombre</th>
+                                <th><i class="fas fa-tag me-1"></i> Categoría</th>
+                                <th><i class="fas fa-calendar me-1"></i> Fecha</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in docs)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="@GetFileIcon(doc.Type) me-2 text-muted"></i>
+                                        @doc.Title <small class="text-muted">(@doc.Type)</small>
+                                    </td>
+                                    <td><span class="badge bg-secondary">@doc.Category</span></td>
+                                    <td>@doc.UploadDate.ToShortDateString()</td>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm" title="Eliminar" @onclick="() => Eliminar(doc)">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No hay documentos subidos todavía.
+                    </div>
+                }
+            </div>
+        </main>
     </div>
-
-    <table class="table table-bordered">
-        <thead>
-            <tr><th>Nombre</th><th>Categoría</th><th>Fecha</th><th>Acción</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var doc in DocService.GetAll())
-            {
-                <tr>
-                    <td>@doc.Title <small class="text-muted">(@doc.Type)</small></td>
-                    <td>@doc.Category</td>
-                    <td>@doc.UploadDate.ToShortDateString()</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(doc)">Eliminar</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
 </div>
 
+<style>
+    .upload-card { background: white; border-radius: 12px; border: 1px solid #eee; }
+    body.dark-mode .upload-card { background: #1a202c; border-color: #4a5568; color: #e2e8f0; }
+    body.dark-mode .upload-card label { color: #cbd5e0; }
+    body.dark-mode .upload-card .text-muted { color: #a0aec0 !important; }
+    body.dark-mode .table { color: #e2e8f0; }
+    body.dark-mode .table thead { background: #2d3748; }
+</style>
+
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private User _user = new();
+    private bool showUserMenu = false;
+
     private string nuevoTitulo = "";
     private string nuevaCategoria = "General";
     private bool isUploading = false;
     private string uploadError = "";
+    private string uploadSuccess = "";
+
+    private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var authState = await AuthStateTask;
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userId, out int id))
+            {
+                var allUsers = await repoUsers.GetAll();
+                var userDb = allUsers.FirstOrDefault(u => u.Id == id);
+                if (userDb is not null) _user = userDb;
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("initDarkMode"); } catch { }
+        }
+    }
 
     private async Task SubirArchivoReal(InputFileChangeEventArgs e)
     {
         isUploading = true;
         uploadError = "";
+        uploadSuccess = "";
+        StateHasChanged();
+
         try
         {
             if (string.IsNullOrWhiteSpace(nuevoTitulo)) nuevoTitulo = e.File.Name;
             await DocService.UploadFile(e.File, nuevoTitulo, nuevaCategoria);
+            uploadSuccess = $"El documento '{nuevoTitulo}' se subió correctamente.";
             nuevoTitulo = "";
-            await JS.InvokeVoidAsync("alert", "Subido correctamente");
         }
         catch (InvalidOperationException ex)
         {
@@ -89,12 +241,29 @@
         {
             uploadError = "Error al subir el archivo. Verifica el tipo y tamaño.";
         }
+
         isUploading = false;
+        StateHasChanged();
     }
 
     private async Task Eliminar(Documento doc)
     {
-        if (await JS.InvokeAsync<bool>("confirm", $"¿Borrar '{doc.Title}'?"))
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Seguro que deseas eliminar '{doc.Title}'?");
+        if (confirmed)
+        {
             DocService.Delete(doc);
+            StateHasChanged();
+        }
     }
+
+    private string GetFileIcon(string type) => type.ToLower() switch
+    {
+        ".pdf"  => "fas fa-file-pdf",
+        ".doc" or ".docx" => "fas fa-file-word",
+        ".xls" or ".xlsx" => "fas fa-file-excel",
+        ".ppt" or ".pptx" => "fas fa-file-powerpoint",
+        ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" => "fas fa-file-image",
+        ".txt" or ".csv"  => "fas fa-file-alt",
+        _ => "fas fa-file"
+    };
 }
