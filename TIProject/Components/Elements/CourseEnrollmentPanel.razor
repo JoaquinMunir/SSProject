@@ -1,0 +1,119 @@
+@* Inscripciones del usuario: cursos inscritos y cursos próximos disponibles.
+   Lo usan los paneles de brigadista y de estudiante. *@
+@inject IRepoCourses RepoCourses
+@inject IJSRuntime JS
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(messageIsError ? "alert-danger" : "alert-success")" role="alert">@message</div>
+}
+
+<div class="mb-5">
+    <h3><i class="fas fa-check-circle text-success"></i> Mis Inscripciones</h3>
+    @if (enrolled.Any())
+    {
+        <div class="course-grid">
+            @foreach (var course in enrolled.OrderBy(c => c.Date))
+            {
+                <div class="card p-3 shadow-sm course-card enrolled">
+                    <h5 class="fw-bold">@course.Name</h5>
+                    <p class="small mb-1"><i class="fas fa-map-marker-alt"></i> @course.Place</p>
+                    <p class="small mb-3"><i class="far fa-calendar"></i> @course.Date.ToString("dd 'de' MMMM yyyy")</p>
+                    @if (course.Date.Date >= DateTime.Today)
+                    {
+                        <button class="btn btn-outline-danger btn-sm w-100" @onclick="() => Cancelar(course)">
+                            <i class="fas fa-times"></i> Cancelar inscripción
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary align-self-start">Finalizado</span>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">No tienes cursos inscritos en este momento.</div>
+    }
+</div>
+
+<h3><i class="fas fa-list"></i> Cursos disponibles</h3>
+@if (available.Any())
+{
+    <div class="course-grid">
+        @foreach (var course in available.OrderBy(c => c.Date))
+        {
+            <div class="card p-3 shadow-sm course-card">
+                <h5 class="fw-bold">@course.Name</h5>
+                <p class="small mb-1"><i class="fas fa-map-marker-alt"></i> @course.Place</p>
+                <p class="small mb-3"><i class="far fa-calendar"></i> @course.Date.ToString("dd 'de' MMMM yyyy")</p>
+                <button class="btn btn-primary btn-sm w-100" @onclick="() => Inscribirse(course)">
+                    <i class="fas fa-user-check"></i> Inscribirme
+                </button>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p class="text-muted">No hay cursos abiertos por el momento.</p>
+}
+
+<style>
+    .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 20px; margin-top: 15px; }
+    .course-card { border-top: 4px solid #0d6efd; display: flex; flex-direction: column; }
+    .course-card.enrolled { border-top-color: #198754; }
+    body.dark-mode .course-card { background: #1a202c; color: #e2e8f0; border-color: #4a5568; }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public int UserId { get; set; }
+
+    private List<Course> enrolled = new();
+    private List<Course> available = new();
+    private string message = "";
+    private bool messageIsError = false;
+
+    protected override async Task OnParametersSetAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        if (UserId == 0) return;
+        enrolled = await RepoCourses.GetEnrolled(UserId);
+        var enrolledIds = enrolled.Select(c => c.Id).ToHashSet();
+        available = (await RepoCourses.GetAll())
+            .Where(c => c.Date.Date >= DateTime.Today && !enrolledIds.Contains(c.Id))
+            .ToList();
+    }
+
+    private async Task Inscribirse(Course course)
+    {
+        try
+        {
+            await RepoCourses.Enroll(course.Id, UserId);
+            Mostrar($"Te inscribiste en «{course.Name}».", false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Mostrar(ex.Message, true);
+        }
+        await Cargar();
+    }
+
+    private async Task Cancelar(Course course)
+    {
+        bool ok = await JS.InvokeAsync<bool>("confirm", $"¿Cancelar tu inscripción a «{course.Name}»?");
+        if (!ok) return;
+        await RepoCourses.Unenroll(course.Id, UserId);
+        Mostrar($"Cancelaste tu inscripción a «{course.Name}».", false);
+        await Cargar();
+    }
+
+    private void Mostrar(string text, bool isError)
+    {
+        message = text;
+        messageIsError = isError;
+    }
+}

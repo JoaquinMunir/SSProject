@@ -60,7 +60,7 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-user-tie"></i></span>
                         <input type="text" class="form-control"
-                               placeholder="Buscar encargado (Admin o Brigader)"
+                               placeholder="Buscar encargado (administrador)"
                                value="@managerSearch"
                                @oninput="OnManagerSearchChanged" />
                     </div>
@@ -101,7 +101,7 @@
     [Parameter] public int Id { get; set; }
 
     private Course _course = new Course { Date = DateTime.Today };
-    private string _tittle = "Nueva ";
+    private string _tittle = "Nuevo ";
     private string managerSearch = "";
     private List<User> allUsers = new();
     private List<User> managerSuggestions = new();
@@ -140,6 +140,11 @@
     private async Task Save()
     {
         if (selectedManager != null) _course.IdManager = selectedManager.Id;
+        if (_course.IdManager == 0)
+        {
+            await JS.InvokeVoidAsync("alert", "Selecciona un encargado de la lista.");
+            return;
+        }
 
         try
         {
@@ -173,7 +178,7 @@
         else
         {
             managerSuggestions = allUsers
-                .Where(u => (u.Role == Role.admin || u.Role == Role.brigader)
+                .Where(u => u.Role == Role.admin
                             && (u.Name ?? "").Contains(managerSearch, StringComparison.OrdinalIgnoreCase))
                 .Take(3)
                 .ToList();

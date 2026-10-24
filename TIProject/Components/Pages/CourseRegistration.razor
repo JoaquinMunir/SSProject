@@ -28,7 +28,7 @@
 
             @if (course == null)
             {
-                <div class="alert alert-info">Cargando información del curso...</div>
+                <div class="alert alert-info">@(string.IsNullOrEmpty(errorMessage) ? "Cargando información del curso..." : errorMessage)</div>
             }
             else
             {
@@ -54,22 +54,16 @@
                 {
                     <div class="alert alert-success text-center">
                         <i class="fas fa-check-circle fa-2x mb-2"></i>
-                        <h4>¡Inscripción Exitosa!</h4>
-                        <p>Te has registrado correctamente al curso <strong>@course.Name</strong>.</p>
-                        <button class="btn btn-primary mt-3" @onclick="GoHome">Volver al Inicio</button>
+                        <h4>¡Inscripción exitosa!</h4>
+                        <p>Quedaste registrado en el curso <strong>@course.Name</strong>.</p>
+                        <button class="btn btn-primary mt-3" @onclick="IrAMiPanel">Ir a mi panel</button>
                     </div>
                 }
                 else
                 {
                     <div class="mt-4">
-                        <label class="form-label fw-bold">Ingresa tu Número de Identificación / Matrícula</label>
-
-                        <div class="input-group mb-3">
-                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                            <input type="text" class="form-control"
-                                   placeholder="Ej. 20185678"
-                                   @bind="userIdNumber" />
-                        </div>
+                        <p class="mb-1">Te inscribirás como:</p>
+                        <p class="fw-bold mb-3"><i class="fas fa-id-card me-2"></i>@_user.Name · @_user.IdNumber</p>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
@@ -79,7 +73,7 @@
                         }
 
                         <div class="d-grid gap-2 mt-4">
-                            <button class="btn-login" @onclick="RegisterUser">
+                            <button class="btn-login" @onclick="RegisterUser" disabled="@(!canEnroll)">
                                 <i class="fas fa-user-check me-2"></i> Confirmar Inscripción
                             </button>
                             <button class="btn-cancel" @onclick="GoHome">
@@ -97,67 +91,70 @@
     [Parameter]
     public int Id { get; set; }
 
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private Course? course;
-    private string userIdNumber = "";
+    private User _user = new();
     private string errorMessage = "";
     private bool registrationSuccess = false;
-
-    private List<User> allUsers = new();
+    private bool canEnroll = false;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        course = await repoCourses.Get(Id);
+        if (course == null)
         {
-            course = await repoCourses.Get(Id);
-            allUsers = await repoUsers.GetAll();
+            errorMessage = "El curso no existe.";
+            return;
         }
-        catch (Exception ex)
+
+        if (AuthStateTask is not null)
         {
-            errorMessage = "Error al cargar el curso. Intenta nuevamente.";
-            Console.WriteLine(ex.Message);
+            var authState = await AuthStateTask;
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userId, out int id))
+            {
+                _user = await repoUsers.Get(id) ?? new();
+            }
         }
+
+        if (course.Date.Date < DateTime.Today)
+            errorMessage = "Este curso ya se realizó; no admite inscripciones.";
+        else if ((await repoCourses.GetEnrolled(_user.Id)).Any(c => c.Id == course.Id))
+            errorMessage = "Ya estás inscrito en este curso.";
+        else
+            canEnroll = _user.Id != 0;
     }
 
     private async Task RegisterUser()
     {
         errorMessage = "";
-
-        if (string.IsNullOrWhiteSpace(userIdNumber))
-        {
-            errorMessage = "Por favor, ingresa tu número de identificación.";
-            return;
-        }
-
-        // Busca el usuario por su IDNumber (Asegúrate de que tu modelo User tenga IdNumber)
-        var user = allUsers.FirstOrDefault(u => u.IdNumber.ToString() == userIdNumber);
-
-        if (user == null)
-        {
-            errorMessage = "No se encontró un usuario con esa matrícula/ID. Verifica tus datos.";
-            return;
-        }
+        if (course == null || _user.Id == 0) return;
 
         try
         {
-            if (course == null)
-            {
-                errorMessage = "Información del curso no válida.";
-                return;
-            }
-
-            // Lógica de inscripción (Simulada, conecta tu repositorio aquí)
-            Console.WriteLine($"Inscribiendo al usuario {user.Name} (ID: {user.Id}) al curso {course.Id}");
-
-            // await repoCourses.RegisterStudentToCourse(course.Id, user.Id);
-
-            await Task.Delay(500);
-            registrationSuccess = true;
+            registrationSuccess = await repoCourses.Enroll(course.Id, _user.Id);
+            if (!registrationSuccess)
+                errorMessage = "Ya estás inscrito en este curso.";
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            errorMessage = "Hubo un error al procesar tu inscripción.";
-            Console.WriteLine($"Error inscripción: {ex.Message}");
+            errorMessage = ex.Message;
         }
+    }
+
+    private void IrAMiPanel()
+    {
+        var panel = _user.Role switch
+        {
+            Role.admin => "/dashboard_admin/",
+            Role.brigaderChief => "/dashboard_chief",
+            Role.brigader => "/dashboard_brigader",
+            Role.auxiliar => "/dashboard_auxiliar",
+            Role.student => "/dashboard_student",
+            _ => "/"
+        };
+        navigation.NavigateTo(panel);
     }
 
     private void GoHome()

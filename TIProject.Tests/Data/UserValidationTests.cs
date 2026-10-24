@@ -87,14 +87,24 @@ namespace TIProject.Tests.Data
             Assert.Contains(results, r => r.MemberNames.Contains(nameof(User.Email)));
         }
 
-        [Theory]
-        [InlineData("short")]            // < 8 chars
-        [InlineData("has_spaces_here")]  // contains spaces
-        [InlineData("waytoolongpasswordvalue123")] // > 20 chars
-        public void Password_Invalid_FailsValidation(string password)
+        // La contraseña se guarda como hash PBKDF2; la longitud de 8 a 20 caracteres
+        // del texto plano se valida en el formulario (AddUser) antes de generar el hash.
+        [Fact]
+        public void Password_Hash_PassesValidation()
         {
             var user = DbContextFactory.BuildValidUser();
-            user.Password = password;
+            user.Password = new Microsoft.AspNetCore.Identity.PasswordHasher<User>().HashPassword(user, "Secret123");
+
+            var (isValid, _) = Validate(user);
+
+            Assert.True(isValid);
+        }
+
+        [Fact]
+        public void Password_LongerThan512_FailsValidation()
+        {
+            var user = DbContextFactory.BuildValidUser();
+            user.Password = new string('a', 513);
 
             var (isValid, results) = Validate(user);
 

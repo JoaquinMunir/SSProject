@@ -8,66 +8,10 @@
 @inject TIProject.Data.Documents DocService
 @inject IRepoUsers repoUsers
 @inject IJSRuntime JS
-@inherits LayoutComponentBase
-
-<HeadContent>
-    <link href="css/dashboardIndex.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</HeadContent>
 
 <PageTitle>Documentos - Administrador</PageTitle>
 
-<div class="dashboard-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo"><img src="images/logo-pc-ucol.png" alt="Protección Civil Universidad de Colima" /></div>
-            <div class="logo-text">
-                <h1>Protección Civil</h1>
-                <p>Panel Administrativo</p>
-            </div>
-        </div>
-        <nav>
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/"))">
-                <i class="fas fa-home"></i><span>Dashboard</span>
-            </button>
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))">
-                <i class="fas fa-users"></i><span>Gestión de Cursos</span>
-            </button>
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))">
-                <i class="fas fa-book"></i><span>Gestión de Usuarios</span>
-            </button>
-            <button type="button" class="menu-item active" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/documents"))">
-                <i class="fas fa-file-alt"></i><span>Gestión de Documentos</span>
-            </button>
-        </nav>
-    </aside>
-
-    <div class="main-area">
-        <header class="header">
-            <div class="header-actions">
-                <button class="icon-btn" type="button" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-                    <i class="fas fa-moon" id="darkModeIcon"></i>
-                </button>
-                <div class="user-avatar" @onclick="ToggleUserMenu" title="@_user.Name">
-                    @(!string.IsNullOrEmpty(_user.Name) ? _user.Name[0].ToString().ToUpper() : "U")
-                </div>
-                <div class="user-menu @(showUserMenu ? "show" : "")">
-                    <p><strong>Nombre:</strong> @_user.Name</p>
-                    <p><strong>Email:</strong> @_user.Email</p>
-                    @if (_user.Brigade != null)
-                    {
-                        <p><strong>Brigada:</strong> @_user.Brigade.GetDisplayName()</p>
-                    }
-                    <p><strong>Rol:</strong> @_user.Role.GetDisplayName()</p>
-                </div>
-                <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/account/logout'">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <div class="dashboard-content">
+<PanelShell CurrentUser="_user" Active="/dashboard_admin/documents">
                 <h1>Gestión de Documentos</h1>
                 <p>Administra los documentos y archivos de Protección Civil</p>
 
@@ -275,10 +219,7 @@
                         </div>
                     }
                 </div>
-            </div>
-        </main>
-    </div>
-</div>
+</PanelShell>
 
 <style>
     .upload-card { background: white; border-radius: 14px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
@@ -492,12 +433,11 @@
 
     // ── Helpers de presentación ───────────────────────────────────────────
 
-    private static string FormatSize(long bytes) => bytes switch
-    {
-        < 1024 => $"{bytes} B",
-        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
-        _ => $"{bytes / 1024.0 / 1024.0:F1} MB"
-    };
+    // Razor interpreta "< 1024" de un switch como etiqueta HTML, por eso se usan ternarios.
+    private static string FormatSize(long bytes) =>
+        bytes >= 1024 * 1024 ? $"{bytes / 1024.0 / 1024.0:F1} MB"
+        : bytes >= 1024 ? $"{bytes / 1024.0:F1} KB"
+        : $"{bytes} B";
 
     private static string GetFileIcon(string type) => type.ToUpper() switch
     {

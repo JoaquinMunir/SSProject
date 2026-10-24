@@ -10,9 +10,9 @@ Plataforma web para la Brigada Universitaria de Protección Civil de la Universi
 
 - **Sitio público:** inicio con galería, servicios, boletines descargables y catálogo de capacitaciones.
 - **Autenticación por rol:** inicio de sesión con número de identificación de 8 dígitos, reCAPTCHA y redirección al panel de cada perfil.
-- **5 roles con panel propio:** Administrador, Jefe de Brigada, Brigadista, Auxiliar y Estudiante.
+- **5 roles con panel propio:** Administrador, Jefe de Brigada, Brigadista, Auxiliar y Estudiante, todos con el mismo diseño (componente `PanelShell`).
 - **Padrón de usuarios:** alta, edición y asignación a una de las 5 brigadas (Primeros Auxilios, Evacuación, Combate de Incendios, Búsqueda y Rescate, Comunicación).
-- **Capacitaciones:** creación de cursos con encargado, fecha y lugar, e inscripción de usuarios.
+- **Capacitaciones:** creación de cursos con encargado, fecha y lugar. Brigadistas y estudiantes se inscriben o cancelan desde su panel, y el administrador ve cuántos inscritos tiene cada curso.
 - **Gestor documental:** carga de boletines y documentos por categoría con validación en servidor.
 
 ## Seguridad
@@ -22,7 +22,7 @@ El proyecto pasó por una auditoría SecDevOps documentada en [`docs/security`](
 - Contraseñas con hash PBKDF2 (`PasswordHasher`) y migración automática de contraseñas antiguas en texto plano.
 - Autorización por rol con `[Authorize(Roles = ...)]` en cada panel; el rol se toma siempre de la base de datos, nunca del formulario.
 - Cookie de sesión `HttpOnly`, `SameSite=Strict` y expiración deslizante de 30 minutos.
-- Límite de 5 intentos de inicio de sesión por minuto (rate limiting) y reCAPTCHA.
+- Límite de 5 intentos de inicio de sesión por minuto por dirección IP (rate limiting) y reCAPTCHA.
 - Cabeceras de seguridad HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
 - Carga de archivos con lista blanca de extensiones, detección de doble extensión, verificación de *magic bytes* y límite de 20 MB.
 
@@ -53,6 +53,14 @@ cd TIProject
 dotnet tool install --global dotnet-ef   # solo la primera vez
 dotnet ef database update                # crea la base TIProjectDB
 dotnet run
+```
+
+La base se crea vacía. Para el primer acceso, inserta un administrador directamente en la tabla `Users` (`Role = 0`); la contraseña puede ir en texto plano y se convierte a hash PBKDF2 en el primer inicio de sesión. Después, el resto de usuarios se dan de alta desde el panel.
+
+Pruebas (xUnit, base en memoria):
+
+```bash
+dotnet test
 ```
 
 Las claves de reCAPTCHA de `appsettings.json` son las claves públicas de prueba de Google. Para un despliegue real hay que reemplazarlas por claves propias y guardarlas fuera del repositorio (variables de entorno o *user secrets*).

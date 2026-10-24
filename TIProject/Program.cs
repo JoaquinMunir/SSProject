@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using TIProject.Components;
@@ -10,6 +11,11 @@ using TIProject.Data;
 using TIProject.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fechas y números en español de México (por ejemplo, "03 de noviembre de 2026").
+var culture = new CultureInfo("es-MX");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 // 1. SERVICIOS
 builder.Services.AddRazorComponents()
@@ -44,13 +50,23 @@ builder.Services.AddCascadingAuthenticationState();
 // Rate limiting: máximo 5 intentos de login por minuto por IP
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("login-policy", o =>
-    {
-        o.PermitLimit = 5;
-        o.Window = TimeSpan.FromMinutes(1);
-        o.QueueLimit = 0;
-    });
+    // Una ventana por dirección IP; un limitador global bloquearía a todos los usuarios a la vez.
+    options.AddPolicy("login-policy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
     options.RejectionStatusCode = 429;
+    // En lugar de una página en blanco, se regresa al login con un aviso.
+    options.OnRejected = (ctx, _) =>
+    {
+        ctx.HttpContext.Response.Redirect("/login?error=limit");
+        return ValueTask.CompletedTask;
+    };
 });
 
 // 2. BUILD
@@ -76,6 +92,7 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+app.UseRequestLocalization("es-MX");
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();
@@ -157,6 +174,13 @@ app.MapPost("/account/login", async (HttpContext context, IRepoUsers repoUsers, 
     if (!passwordValid)
     {
         context.Response.Redirect($"/login?role={roleStr}&error=1");
+        return;
+    }
+
+    // Si se eligió un portal de rol, la cuenta debe pertenecer a ese rol.
+    if (selectedRoleIntent.HasValue && Enum.IsDefined(selectedRoleIntent.Value) && selectedRoleIntent != user.Role)
+    {
+        context.Response.Redirect($"/login?role={roleStr}&error=role");
         return;
     }
 

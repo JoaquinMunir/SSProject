@@ -130,6 +130,10 @@
             showError = true;
             if (error == "1")
                 msgError = "Credenciales inválidas. Verifica tu número de identificación y contraseña.";
+            else if (error == "limit")
+                msgError = "Demasiados intentos de inicio de sesión. Espera un minuto e inténtalo de nuevo.";
+            else if (error == "role")
+                msgError = "Esta cuenta no corresponde al rol seleccionado. Vuelve y elige tu rol.";
             else if (error == "captcha")
                 msgError = "Por favor, completa el reCAPTCHA correctamente.";
         }
