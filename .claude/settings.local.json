@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -c \"from docx import Document; print\\('python-docx OK'\\)\" 2>&1)",
+      "Bash(pip install *)",
+      "Bash(python *)",
+      "Bash(where.exe dotnet *)",
+      "Bash(ls \"/c/Program Files/dotnet/\" 2>&1 | head -20 || ls \"/mnt/c/Program Files/dotnet/\" 2>&1 | head -20 || echo \"no dotnet dir found\")",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" --version)",
+      "Bash(mkdir -p \"/c/Users/munir/Desktop/source/repos/TIProject/TIProject.Tests\")",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" sln TIProject.sln add \"TIProject.Tests/TIProject.Tests.csproj\")",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" build)",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" test --nologo --no-build --verbosity normal)",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" test --nologo)",
+      "Bash(dotnet build *)",
+      "Bash(which dotnet *)",
+      "Bash(ls '/c/Program Files/dotnet/' 2>&1 | head -20)"
+    ]
+  }
+}

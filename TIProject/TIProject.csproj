@@ -22,10 +22,13 @@
     <Content Remove="Data\documentos_db.json" />
     <Content Remove="Data\Documents.razor" />
     <Content Remove="wwwroot\app.css" />
+    <Content Remove="wwwroot\upload.cs" />
+    <Content Remove="wwwroot\uploads.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="wwwroot\css\index.css" />
+    <None Include="wwwroot\Diseño sin título %2813%29.png" />
   </ItemGroup>
 
   <ItemGroup>

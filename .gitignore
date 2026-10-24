@@ -361,6 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-# IDE y herramientas locales
-.idea/
-.claude/settings.local.json
