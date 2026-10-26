@@ -82,7 +82,7 @@
                                     <td>@course.Date.ToString("dd/MM/yyyy")</td>
                                     <td>@course.Place</td>
                                     <td>@(course.User != null ? course.User.Name : "Sin asignar")</td>
-                                    <td>@(course.Users?.Count ?? 0)</td>
+                                    <td>@(enrollmentCounts.GetValueOrDefault(course.Id))</td>
 
                                     <td>
                                         @if (course.Date >= DateTime.Today)
@@ -237,6 +237,7 @@
     private User _user = new();
     private List<User> allUsers = new();
     private List<Course> allCourses = new();
+    private Dictionary<int, int> enrollmentCounts = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -251,6 +252,7 @@
         // Carga de datos
         allUsers = await repoUsers.GetAll();
         allCourses = await repoCourses.GetAll();
+        enrollmentCounts = await repoCourses.GetEnrollmentCounts();
 
         if (AuthStateTask is not null)
         {
@@ -277,6 +279,7 @@
         {
             await repoCourses.Delete(course.Id);
             allCourses = await repoCourses.GetAll(); // Recargar lista
+            enrollmentCounts = await repoCourses.GetEnrollmentCounts();
             StateHasChanged(); // Actualizar UI
         }
     }

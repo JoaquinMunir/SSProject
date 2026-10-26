@@ -14,7 +14,7 @@ namespace TIProject.Repository
 
         public async Task<List<Course>> GetAll()
         {
-            return await _context.Courses.Include(b => b.User).Include(b => b.Users).AsNoTracking().ToListAsync();
+            return await _context.Courses.Include(b => b.User).AsNoTracking().ToListAsync();
         }
 
         public async Task<Course?> Get(int id)
@@ -46,6 +46,14 @@ namespace TIProject.Repository
                 _context.Courses.Remove(course);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        // Cantidad de inscritos por curso, sin cargar a los usuarios (ni sus hashes) en memoria.
+        public async Task<Dictionary<int, int>> GetEnrollmentCounts()
+        {
+            return await _context.Courses
+                .Select(c => new { c.Id, Count = c.Users!.Count })
+                .ToDictionaryAsync(x => x.Id, x => x.Count);
         }
 
         public async Task<List<Course>> GetEnrolled(int userId)

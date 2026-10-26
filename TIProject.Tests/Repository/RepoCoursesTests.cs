@@ -205,5 +205,17 @@ namespace TIProject.Tests.Repository
 
             Assert.Empty(await repo.GetEnrolled(user.Id));
         }
+    
+        [Fact]
+        public async Task GetEnrollmentCounts_ReturnsCountPerCourse()
+        {
+            var (context, repo, user, course) = await SeedEnrollment();
+            using var _ = context;
+
+            await repo.Enroll(course.Id, user.Id);
+            var counts = await repo.GetEnrollmentCounts();
+
+            Assert.Equal(1, counts[course.Id]);
+        }
     }
 }

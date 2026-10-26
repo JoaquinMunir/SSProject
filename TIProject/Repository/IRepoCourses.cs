@@ -10,6 +10,7 @@ namespace TIProject.Repository
         Task Update(Course brigade);
         Task Delete(int id);
         Task<List<Course>> GetEnrolled(int userId);
+        Task<Dictionary<int, int>> GetEnrollmentCounts();
         Task<bool> Enroll(int courseId, int userId);
         Task Unenroll(int courseId, int userId);
     }
