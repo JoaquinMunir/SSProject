@@ -4,6 +4,8 @@
 
 # Protección Civil Universitaria — Sistema de gestión de brigadas
 
+> **EN:** University civil-protection platform: brigades, trainings and enrollments with 5-role RBAC enforced on the server. Blazor Server (.NET 8), EF Core, SQL Server, layered design with a repository layer.
+
 Plataforma web para la Brigada Universitaria de Protección Civil de la Universidad de Colima. Centraliza el padrón de brigadistas, las capacitaciones, los boletines informativos y los documentos oficiales, con un panel distinto para cada rol.
 
 ## Funcionalidades
@@ -14,6 +16,51 @@ Plataforma web para la Brigada Universitaria de Protección Civil de la Universi
 - **Padrón de usuarios:** alta, edición y asignación a una de las 5 brigadas (Primeros Auxilios, Evacuación, Combate de Incendios, Búsqueda y Rescate, Comunicación).
 - **Capacitaciones:** creación de cursos con encargado, fecha y lugar. Brigadistas y estudiantes se inscriben o cancelan desde su panel, y el administrador ve cuántos inscritos tiene cada curso.
 - **Gestor documental:** carga de boletines y documentos por categoría con validación en servidor.
+
+## Arquitectura
+
+Aplicación monolítica en capas sobre Blazor Server. Cada capa tiene una sola responsabilidad y solo conoce a la de abajo:
+
+```mermaid
+flowchart TD
+    UI["Componentes Blazor<br/>páginas por rol + PanelShell compartido"]
+    AUTH["Autorización por rol<br/>[Authorize(Roles)] · cookie de sesión"]
+    REPO["Repositorios<br/>IRepoUsers · IRepoCourses"]
+    EF["EF Core · TIProjectDbContext<br/>migraciones versionadas"]
+    DB[("SQL Server")]
+    UI --> AUTH --> REPO --> EF --> DB
+```
+
+- **Presentación:** los 8 paneles comparten el componente `PanelShell` (barra lateral, encabezado, modo oscuro y menú según el rol), así que un cambio de diseño se hace en un solo lugar.
+- **Acceso a datos:** las páginas nunca usan el `DbContext` directamente; pasan por interfaces de repositorio registradas en el contenedor de inyección de dependencias. Eso permite probarlas con una base en memoria.
+- **Reglas de negocio en el modelo:** `User` y `Course` implementan `IValidatableObject` (por ejemplo, un brigadista debe tener brigada y el encargado de un curso debe ser administrador).
+- **Seguridad en el servidor:** el rol se lee siempre de la base de datos, nunca de lo que envía el formulario.
+
+### Modelo de datos
+
+```mermaid
+erDiagram
+    USER ||--o{ COURSE : "administra (IdManager)"
+    USER }o--o{ COURSE : "se inscribe (CourseUser)"
+    USER {
+        int Id PK
+        int IdNumber "8 dígitos"
+        string Email
+        string Password "hash PBKDF2"
+        enum Role "5 roles"
+        enum Brigade "5 brigadas"
+    }
+    COURSE {
+        int Id PK
+        string Name
+        datetime Date
+        string Place
+        int IdManager FK
+    }
+```
+
+- La inscripción es una relación muchos a muchos (tabla `CourseUser`), creada con una migración que conserva los datos existentes.
+- Borrar a un administrador no borra sus cursos: la relación del encargado usa `DeleteBehavior.Restrict`.
 
 ## Seguridad
 
