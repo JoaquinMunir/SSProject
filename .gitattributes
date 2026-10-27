@@ -61,3 +61,6 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Cuenta los componentes Blazor como C# en las estadísticas de lenguaje de GitHub
+*.razor linguist-language=C#
