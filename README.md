@@ -17,15 +17,13 @@ Plataforma web para la Brigada Universitaria de Protección Civil de la Universi
 
 Aplicación monolítica en capas sobre Blazor Server. Cada capa tiene una sola responsabilidad y solo conoce a la de abajo:
 
-```mermaid
-flowchart TD
-    UI["Componentes Blazor<br/>páginas por rol + PanelShell compartido"]
-    AUTH["Autorización por rol<br/>[Authorize(Roles)] · cookie de sesión"]
-    REPO["Repositorios<br/>IRepoUsers · IRepoCourses"]
-    EF["EF Core · TIProjectDbContext<br/>migraciones versionadas"]
-    DB[("SQL Server")]
-    UI --> AUTH --> REPO --> EF --> DB
-```
+| Capa | Contenido | Responsabilidad |
+|---|---|---|
+| Presentación | Componentes Blazor: páginas por rol y `PanelShell` compartido | Mostrar datos y capturar acciones del usuario |
+| Autorización | `[Authorize(Roles = ...)]` y cookie de sesión | Decidir qué rol puede ver cada página |
+| Acceso a datos | Repositorios `IRepoUsers` e `IRepoCourses` | Consultas y escrituras; las páginas no tocan el `DbContext` |
+| Persistencia | EF Core (`TIProjectDbContext`) con migraciones versionadas | Mapear entidades a tablas |
+| Base de datos | SQL Server | Almacenamiento |
 
 - **Presentación:** los 8 paneles comparten el componente `PanelShell` (barra lateral, encabezado, modo oscuro y menú según el rol), así que un cambio de diseño se hace en un solo lugar.
 - **Acceso a datos:** las páginas nunca usan el `DbContext` directamente; pasan por interfaces de repositorio registradas en el contenedor de inyección de dependencias. Eso permite probarlas con una base en memoria.
@@ -34,26 +32,11 @@ flowchart TD
 
 ### Modelo de datos
 
-```mermaid
-erDiagram
-    USER ||--o{ COURSE : "administra (IdManager)"
-    USER }o--o{ COURSE : "se inscribe (CourseUser)"
-    USER {
-        int Id PK
-        int IdNumber "8 dígitos"
-        string Email
-        string Password "hash PBKDF2"
-        enum Role "5 roles"
-        enum Brigade "5 brigadas"
-    }
-    COURSE {
-        int Id PK
-        string Name
-        datetime Date
-        string Place
-        int IdManager FK
-    }
-```
+| Entidad | Campos principales | Relaciones |
+|---|---|---|
+| `User` | `Id`, `IdNumber` (8 dígitos), `Email`, `Password` (hash PBKDF2), `Role` (5 roles), `Brigade` (5 brigadas) | Administra cursos (1 a N) y se inscribe en cursos (N a N) |
+| `Course` | `Id`, `Name`, `Date`, `Place`, `IdManager` | Tiene un encargado administrador (`IdManager`) e inscritos (N a N) |
+| `CourseUser` | `EnrolledCoursesId`, `UsersId` | Tabla intermedia de inscripciones |
 
 - La inscripción es una relación muchos a muchos (tabla `CourseUser`), creada con una migración que conserva los datos existentes.
 - Borrar a un administrador no borra sus cursos: la relación del encargado usa `DeleteBehavior.Restrict`.
