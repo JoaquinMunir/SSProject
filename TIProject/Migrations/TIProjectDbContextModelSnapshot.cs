@@ -22,6 +22,21 @@ namespace TIProject.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CourseUser", b =>
+                {
+                    b.Property<int>("EnrolledCoursesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EnrolledCoursesId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("CourseUser");
+                });
+
             modelBuilder.Entity("TIProject.Data.Course", b =>
                 {
                     b.Property<int>("Id")
@@ -70,9 +85,6 @@ namespace TIProject.Migrations
                     b.Property<int?>("Brigade")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CourseId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -103,9 +115,22 @@ namespace TIProject.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CourseId");
-
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("CourseUser", b =>
+                {
+                    b.HasOne("TIProject.Data.Course", null)
+                        .WithMany()
+                        .HasForeignKey("EnrolledCoursesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TIProject.Data.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TIProject.Data.Course", b =>
@@ -113,22 +138,10 @@ namespace TIProject.Migrations
                     b.HasOne("TIProject.Data.User", "User")
                         .WithMany("ManagedCourses")
                         .HasForeignKey("IdManager")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TIProject.Data.User", b =>
-                {
-                    b.HasOne("TIProject.Data.Course", null)
-                        .WithMany("Users")
-                        .HasForeignKey("CourseId");
-                });
-
-            modelBuilder.Entity("TIProject.Data.Course", b =>
-                {
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("TIProject.Data.User", b =>

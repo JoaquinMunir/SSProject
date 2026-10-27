@@ -2,97 +2,76 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "auxiliar")]
 @inject IRepoUsers RepoUsers
-@inject NavigationManager Navigation
 
-<HeadContent>
-    <link href="css/dashboardIndex.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</HeadContent>
+<PageTitle>Panel de Auxiliar</PageTitle>
 
-<div class="dashboard-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo"><i class="fas fa-hands-helping"></i></div>
-            <div class="logo-text"><h1>Auxiliar</h1></div>
+<PanelShell CurrentUser="_currentUser" Active="/dashboard_auxiliar">
+    <h1>Comunidad Universitaria</h1>
+    <p>Personas registradas en: <strong>@_currentUser.School</strong></p>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card p-3 text-center">
+                <h3>@usersInMySchool.Count</h3>
+                <small>Personas registradas en tu facultad</small>
+            </div>
         </div>
-        <nav>
-            <button class="menu-item active"><i class="fas fa-clipboard-list"></i><span>Reporte Piso</span></button>
-            <button class="menu-item" onclick="location.href='/account/logout'">
-                <i class="fas fa-sign-out-alt"></i><span>Salir</span>
-            </button>
-        </nav>
-    </aside>
-
-    <div class="main-area">
-        <header class="header">
-            <div class="header-actions">
-                <div class="user-avatar" style="background-color: #27ae60;">
-                    @(_currentUser.Name?.FirstOrDefault().ToString().ToUpper() ?? "A")
-                </div>
-                <span>Aux. @_currentUser.Name</span>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <div class="dashboard-content">
-                <h1>Vista Auxiliar</h1>
-                <p>Visualización de comunidad universitaria en: <strong>@_currentUser.School</strong></p>
-
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card p-3 text-center">
-                            <h3>@usersInMySchool.Count()</h3>
-                            <small>Total Personas en Facultad</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header bg-success text-white">Listado Informativo (Solo Lectura)</div>
-                    <ul class="list-group list-group-flush">
-                        @foreach (var user in usersInMySchool)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>@user.Name</strong>
-                                    <br />
-                                    <small class="text-muted">@user.Role - @user.School</small>
-                                </div>
-                                <span class="badge bg-light text-dark border">@user.Blood</span>
-                            </li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        </main>
     </div>
-</div>
+
+    @if (usersInMySchool.Any())
+    {
+        <div class="card">
+            <div class="card-header bg-success text-white">Listado informativo (solo lectura)</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var user in usersInMySchool)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@user.Name</strong>
+                            <br />
+                            <small class="text-muted">@user.Role.GetDisplayName()@(user.Brigade != null ? $" · {user.Brigade.GetDisplayName()}" : "")</small>
+                        </div>
+                        <span class="badge bg-light text-dark border" title="Tipo de sangre">@user.Blood</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">No se encontraron usuarios en tu facultad o escuela.</div>
+    }
+
+</PanelShell>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     private User _currentUser = new();
+
+    private async Task CargarUsuarioActual()
+    {
+        if (AuthStateTask is null) return;
+        var authState = await AuthStateTask;
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(userId, out int id))
+        {
+            var user = await RepoUsers.Get(id);
+            if (user is not null) _currentUser = user;
+        }
+    }
+
     private List<User> usersInMySchool = new();
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthStateTask is not null)
-        {
-            var authState = await AuthStateTask;
-            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (int.TryParse(userId, out int id))
-            {
-                var user = await RepoUsers.Get(id);
-                if (user is not null) _currentUser = user;
-            }
-        }
+        await CargarUsuarioActual();
+        if (string.IsNullOrEmpty(_currentUser.School)) return;
 
         var allUsers = await RepoUsers.GetAll();
-        if (!string.IsNullOrEmpty(_currentUser.School))
-        {
-            usersInMySchool = allUsers
-                .Where(u => u.School == _currentUser.School)
-                .ToList();
-        }
+        usersInMySchool = allUsers
+            .Where(u => u.School == _currentUser.School && u.Id != _currentUser.Id)
+            .OrderBy(u => u.Name)
+            .ToList();
     }
 }

@@ -3,88 +3,13 @@
 @attribute [Authorize(Roles = "admin")]
 @using System.Security.Claims
 @inject NavigationManager Navigation
-@inherits LayoutComponentBase
 @inject IRepoUsers repoUsers
 @inject IRepoCourses repoCourses
 @inject IJSRuntime JS
 
-<HeadContent>
-    <link href="css/dashboardIndex.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</HeadContent>
-
 <PageTitle>Cursos - Administrador</PageTitle>
 
-<div class="dashboard-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <div class="logo-text">
-                <h1>Protección Civil</h1>
-                <p>Panel Administrativo</p>
-            </div>
-        </div>
-        <nav>
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/"))">
-                <i class="fas fa-home"></i>
-                <span>Dashboard</span>
-            </button>
-
-            <button type="button" class="menu-item active" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/courses"))">
-                <i class="fas fa-users"></i>
-                <span>Gestión de Cursos</span>
-            </button>
-
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/users"))">
-                <i class="fas fa-book"></i>
-                <span>Gestión de Usuarios</span>
-            </button>
-
-            <button type="button" class="menu-item" @onclick="@(() => Navigation.NavigateTo("/dashboard_admin/documents"))">
-                <i class="fas fa-file-alt"></i>
-                <span>Gestión de Documentos</span>
-            </button>
-
-        </nav>
-    </aside>
-
-    <div class="main-area">
-        <header class="header">
-            <div class="header-actions">
-                <button class="icon-btn" id="darkModeButton" type="button" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-                    <i class="fas fa-moon" id="darkModeIcon"></i>
-                </button>
-
-                <button class="icon-btn" type="button" aria-label="Notificaciones">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">2</span>
-                </button>
-
-                <div class="user-avatar" @onclick="ToggleUserMenu" title="@_user.Name">
-                    @(!string.IsNullOrEmpty(_user.Name) ? _user.Name[0].ToString().ToUpper() : "A")
-                </div>
-
-                <div class="user-menu @(showUserMenu ? "show" : "")">
-                    <p><strong>Nombre:</strong> @_user.Name</p>
-                    <p><strong>Rol:</strong> @_user.Role.GetDisplayName()</p>
-                </div>
-
-                @code {
-                    private bool showUserMenu = false;
-                    private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
-                }
-
-                <button class="icon-btn" type="button" aria-label="Salir" onclick="location.href='/account/logout'">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
-        </header>
-
-        <main class="main-content">
-
-            <div class="dashboard-content">
+<PanelShell CurrentUser="_user" Active="/dashboard_admin/courses">
                 <h1>Gestión de Cursos</h1>
                 <p>Panel de administración y programación de capacitaciones</p>
 
@@ -133,6 +58,7 @@
 
                 @if (allCourses.Count() > 0)
                 {
+                    <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
@@ -141,6 +67,7 @@
                                 <th>Fecha</th>
                                 <th>Lugar</th>
                                 <th>Encargado</th>
+                                <th>Inscritos</th>
                                 <th>Estado</th>
                                 <th>Editar</th>
                                 <th>Eliminar</th>
@@ -155,6 +82,7 @@
                                     <td>@course.Date.ToString("dd/MM/yyyy")</td>
                                     <td>@course.Place</td>
                                     <td>@(course.User != null ? course.User.Name : "Sin asignar")</td>
+                                    <td>@(enrollmentCounts.GetValueOrDefault(course.Id))</td>
 
                                     <td>
                                         @if (course.Date >= DateTime.Today)
@@ -187,11 +115,9 @@
                             }
                         </tbody>
                     </table>
+                    </div>
                 }
-            </div>
-        </main>
-    </div>
-</div>
+</PanelShell>
 
 @* Estilos CSS locales para las tarjetas de resumen *@
 <style>
@@ -311,6 +237,7 @@
     private User _user = new();
     private List<User> allUsers = new();
     private List<Course> allCourses = new();
+    private Dictionary<int, int> enrollmentCounts = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -325,6 +252,7 @@
         // Carga de datos
         allUsers = await repoUsers.GetAll();
         allCourses = await repoCourses.GetAll();
+        enrollmentCounts = await repoCourses.GetEnrollmentCounts();
 
         if (AuthStateTask is not null)
         {
@@ -343,7 +271,7 @@
         Navigation.NavigateTo($"/editCourse/{id}");
     }
 
-    private async void Eliminar(Course course)
+    private async Task Eliminar(Course course)
     {
         bool confirmDelete = await JS.InvokeAsync<bool>("confirm", $"¿Seguro que deseas eliminar el curso '{course.Name}'?");
 
@@ -351,6 +279,7 @@
         {
             await repoCourses.Delete(course.Id);
             allCourses = await repoCourses.GetAll(); // Recargar lista
+            enrollmentCounts = await repoCourses.GetEnrollmentCounts();
             StateHasChanged(); // Actualizar UI
         }
     }

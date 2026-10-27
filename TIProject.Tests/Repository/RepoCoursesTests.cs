@@ -115,7 +115,7 @@ namespace TIProject.Tests.Repository
             ghost.Id = 12345;
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => repo.Update(ghost));
-            Assert.Equal("La brigada no existe.", ex.Message);
+            Assert.Equal("El curso no existe.", ex.Message);
         }
 
         [Fact]
@@ -141,6 +141,81 @@ namespace TIProject.Tests.Repository
             await repo.Delete(999);
 
             Assert.Single(context.Courses);
+        }
+    
+        private static async Task<(TIProjectDbContext ctx, RepoCourses repo, User user, Course course)> SeedEnrollment(int daysFromToday = 7)
+        {
+            var context = DbContextFactory.CreateInMemory();
+            var user = DbContextFactory.BuildValidUser(role: Role.student);
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            var course = BuildCourse(idManager: user.Id);
+            course.Date = DateTime.Today.AddDays(daysFromToday);
+            context.Courses.Add(course);
+            await context.SaveChangesAsync();
+
+            return (context, new RepoCourses(context), user, course);
+        }
+
+        [Fact]
+        public async Task Enroll_AddsUserToCourse()
+        {
+            var (context, repo, user, course) = await SeedEnrollment();
+            using var _ = context;
+
+            var added = await repo.Enroll(course.Id, user.Id);
+
+            Assert.True(added);
+            var enrolled = await repo.GetEnrolled(user.Id);
+            Assert.Single(enrolled);
+            Assert.Equal(course.Id, enrolled[0].Id);
+        }
+
+        [Fact]
+        public async Task Enroll_Twice_ReturnsFalse()
+        {
+            var (context, repo, user, course) = await SeedEnrollment();
+            using var _ = context;
+
+            await repo.Enroll(course.Id, user.Id);
+            var addedAgain = await repo.Enroll(course.Id, user.Id);
+
+            Assert.False(addedAgain);
+            Assert.Single(await repo.GetEnrolled(user.Id));
+        }
+
+        [Fact]
+        public async Task Enroll_PastCourse_Throws()
+        {
+            var (context, repo, user, course) = await SeedEnrollment(daysFromToday: -1);
+            using var _ = context;
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => repo.Enroll(course.Id, user.Id));
+        }
+
+        [Fact]
+        public async Task Unenroll_RemovesUserFromCourse()
+        {
+            var (context, repo, user, course) = await SeedEnrollment();
+            using var _ = context;
+
+            await repo.Enroll(course.Id, user.Id);
+            await repo.Unenroll(course.Id, user.Id);
+
+            Assert.Empty(await repo.GetEnrolled(user.Id));
+        }
+    
+        [Fact]
+        public async Task GetEnrollmentCounts_ReturnsCountPerCourse()
+        {
+            var (context, repo, user, course) = await SeedEnrollment();
+            using var _ = context;
+
+            await repo.Enroll(course.Id, user.Id);
+            var counts = await repo.GetEnrollmentCounts();
+
+            Assert.Equal(1, counts[course.Id]);
         }
     }
 }

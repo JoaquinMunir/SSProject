@@ -25,6 +25,8 @@ namespace TIProject.Data
         [InverseProperty("ManagedCourses")]
         public virtual User? User { get; set; }
 
+        // Usuarios inscritos al curso.
+        [InverseProperty("EnrolledCourses")]
         public virtual ICollection<User>? Users { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

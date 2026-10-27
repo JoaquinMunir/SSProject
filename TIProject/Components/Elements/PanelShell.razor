@@ -1,0 +1,110 @@
+@* Estructura común de los paneles: barra lateral, encabezado y área de contenido.
+   Todos los roles comparten el mismo diseño; solo cambia el menú. *@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<HeadContent>
+    <link href="css/dashboardIndex.css" rel="stylesheet" />
+</HeadContent>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><img src="images/logo-pc-ucol.png" alt="Protección Civil Universidad de Colima" /></div>
+            <div class="logo-text">
+                <h1>Protección Civil</h1>
+                <p>@PanelName</p>
+            </div>
+        </div>
+        <nav>
+            @foreach (var item in MenuItems)
+            {
+                <button type="button" class="menu-item @(item.Url == Active ? "active" : "")" @onclick="@(() => Navigation.NavigateTo(item.Url))">
+                    <i class="@item.Icon"></i><span>@item.Label</span>
+                </button>
+            }
+        </nav>
+    </aside>
+
+    <div class="main-area">
+        <header class="header">
+            <div class="header-actions">
+                <button class="icon-btn" type="button" onclick="toggleDarkMode()" aria-label="Cambiar modo oscuro">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+
+                <div class="user-avatar" @onclick="ToggleUserMenu" title="@CurrentUser.Name">
+                    @(!string.IsNullOrEmpty(CurrentUser.Name) ? CurrentUser.Name[0].ToString().ToUpper() : "U")
+                </div>
+
+                <div class="user-menu @(showUserMenu ? "show" : "")">
+                    <p><strong>Nombre:</strong> @CurrentUser.Name</p>
+                    <p><strong>Rol:</strong> @CurrentUser.Role.GetDisplayName()</p>
+                    @if (CurrentUser.Brigade != null)
+                    {
+                        <p><strong>Brigada:</strong> @CurrentUser.Brigade.GetDisplayName()</p>
+                    }
+                </div>
+
+                <button class="icon-btn" type="button" aria-label="Cerrar sesión" title="Cerrar sesión"
+                        onclick="location.href='/account/logout'">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="dashboard-content">
+                @ChildContent
+            </div>
+        </main>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public User CurrentUser { get; set; } = new();
+
+    // Ruta del menú que se marca como activa.
+    [Parameter, EditorRequired] public string Active { get; set; } = "";
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool showUserMenu = false;
+    private void ToggleUserMenu() { showUserMenu = !showUserMenu; }
+
+    private record MenuItem(string Url, string Icon, string Label);
+
+    private string PanelName => CurrentUser.Role switch
+    {
+        Role.admin => "Panel Administrativo",
+        Role.brigaderChief => "Panel de Jefe de Brigada",
+        Role.brigader => "Panel de Brigadista",
+        Role.auxiliar => "Panel de Auxiliar",
+        Role.student => "Panel de Estudiante",
+        _ => "Panel"
+    };
+
+    private IEnumerable<MenuItem> MenuItems => CurrentUser.Role switch
+    {
+        Role.admin => new[]
+        {
+            new MenuItem("/dashboard_admin/", "fas fa-home", "Dashboard"),
+            new MenuItem("/dashboard_admin/courses", "fas fa-graduation-cap", "Gestión de Cursos"),
+            new MenuItem("/dashboard_admin/users", "fas fa-users", "Gestión de Usuarios"),
+            new MenuItem("/dashboard_admin/documents", "fas fa-file-alt", "Gestión de Documentos"),
+        },
+        Role.brigaderChief => new[] { new MenuItem("/dashboard_chief", "fas fa-users", "Mi Personal") },
+        Role.brigader => new[] { new MenuItem("/dashboard_brigader", "fas fa-fire-extinguisher", "Capacitación") },
+        Role.auxiliar => new[] { new MenuItem("/dashboard_auxiliar", "fas fa-clipboard-list", "Comunidad") },
+        Role.student => new[] { new MenuItem("/dashboard_student", "fas fa-book-open", "Mis Cursos") },
+        _ => Array.Empty<MenuItem>()
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("initDarkMode"); } catch { }
+        }
+    }
+}

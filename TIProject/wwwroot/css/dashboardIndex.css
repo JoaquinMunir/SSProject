@@ -62,6 +62,7 @@ body {
 .main-area {
     margin-left: 260px;
     flex: 1;
+    min-width: 0; /* evita que tablas anchas empujen el encabezado fuera de la pantalla */
     display: flex;
     flex-direction: column;
     min-height: 100vh;

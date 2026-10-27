@@ -16,7 +16,7 @@
 
         <div class="login-left">
             <div class="logo-circle">
-                <i class="fas fa-shield-halved"></i>
+                <img src="images/logo-pc-ucol.png" alt="Protección Civil Universidad de Colima" />
             </div>
             <h2>Protección Civil</h2>
             <p>Accede a tu panel de control</p>
@@ -130,6 +130,10 @@
             showError = true;
             if (error == "1")
                 msgError = "Credenciales inválidas. Verifica tu número de identificación y contraseña.";
+            else if (error == "limit")
+                msgError = "Demasiados intentos de inicio de sesión. Espera un minuto e inténtalo de nuevo.";
+            else if (error == "role")
+                msgError = "Esta cuenta no corresponde al rol seleccionado. Vuelve y elige tu rol.";
             else if (error == "captcha")
                 msgError = "Por favor, completa el reCAPTCHA correctamente.";
         }

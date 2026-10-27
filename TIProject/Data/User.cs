@@ -82,6 +82,11 @@ namespace TIProject.Data
 
         [InverseProperty("User")]
         public virtual ICollection<Course>? ManagedCourses { get; set; }
+
+        // Cursos en los que el usuario está inscrito (relación muchos a muchos con Course.Users).
+        [InverseProperty("Users")]
+        public virtual ICollection<Course>? EnrolledCourses { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (Role == Data.Role.brigader && Brigade == null)
