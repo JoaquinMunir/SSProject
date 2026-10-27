@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="TIProject/wwwroot/images/logo-pc-ucol.png" alt="Protección Civil Universidad de Colima" width="120" />
-</p>
-
 # Protección Civil Universitaria — Sistema de gestión de brigadas
 
 > **EN:** University civil-protection platform: brigades, trainings and enrollments with 5-role RBAC enforced on the server. Blazor Server (.NET 8), EF Core, SQL Server, layered design with a repository layer.
